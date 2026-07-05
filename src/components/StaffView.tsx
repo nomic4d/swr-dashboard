@@ -25,7 +25,7 @@ const StaffView = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const { data: staffData = [] } = useQuery({
+  const { data: staffData = [], error: staffError } = useQuery({
     queryKey: ["staff"],
     queryFn: async () => {
       const { data } = await supabase.from("staff").select("*").order("name");
