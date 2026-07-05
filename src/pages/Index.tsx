@@ -7,6 +7,7 @@ import MessagesView from "@/components/MessagesView";
 import GalleryView from "@/components/GalleryView";
 import ContributorsView from "@/components/ContributorsView";
 import BudgetView from "@/components/BudgetView";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -87,7 +88,7 @@ const Index = () => {
         </div>
         {activeTab === "dashboard" && <DashboardView />}
         {activeTab === "calendar" && <CalendarView />}
-        {activeTab === "staff" && <StaffView />}
+        {activeTab === "staff" && <ErrorBoundary><StaffView /></ErrorBoundary>}
         {activeTab === "gallery" && <GalleryView />}
         {activeTab === "contributors" && <ContributorsView />}
         {activeTab === "budget" && <BudgetView />}

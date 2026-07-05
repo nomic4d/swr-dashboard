@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const StaffProfile = () => {
   const { id } = useParams();
 
-  const { data: member } = useQuery({
+  const { data: member, isError } = useQuery({
     queryKey: ["profile", id],
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("id, email, full_name, department, role, is_approved, avatar_url, created_at, updated_at").eq("id", id!).maybeSingle();
@@ -18,7 +18,9 @@ const StaffProfile = () => {
     enabled: !!id,
   });
 
-  if (!member) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
+  if (!id) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Invalid profile URL</div>;
+  if (isError) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Error loading profile</div>;
+  if (!member) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Profile not found</div>;
 
   return (
     <div className="min-h-screen bg-background p-6 lg:p-8">
