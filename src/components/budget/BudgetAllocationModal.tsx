@@ -51,103 +51,102 @@ export default function BudgetAllocationModal({ open, onClose, onSave, initialDa
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
+      <DialogContent className="max-w-lg !gap-2 !p-4">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Edit Budget" : "Allocate Budget"}</DialogTitle>
-          <DialogDescription>Fill in the budget details below.</DialogDescription>
+          <DialogTitle className="text-base">{initialData ? "Edit Budget" : "Allocate Budget"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Budget Title</Label>
-              <Input value={form.title} onChange={(e) => update("title", e.target.value)} required />
+        <form onSubmit={handleSubmit} className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="space-y-0.5">
+              <Label className="text-xs">Title</Label>
+              <Input className="h-7 text-xs" value={form.title} onChange={(e) => update("title", e.target.value)} required />
             </div>
-            <div className="space-y-2">
-              <Label>Budget Category</Label>
+            <div className="space-y-0.5">
+              <Label className="text-xs">Category</Label>
               <Select value={form.category} onValueChange={(v) => update("category", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {BUDGET_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Event</Label>
-              <Input value={form.event} onChange={(e) => update("event", e.target.value)} />
+            <div className="space-y-0.5">
+              <Label className="text-xs">Event</Label>
+              <Input className="h-7 text-xs" value={form.event} onChange={(e) => update("event", e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Campaign</Label>
-              <Input value={form.campaign} onChange={(e) => update("campaign", e.target.value)} />
+            <div className="space-y-0.5">
+              <Label className="text-xs">Campaign</Label>
+              <Input className="h-7 text-xs" value={form.campaign} onChange={(e) => update("campaign", e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <Input value={form.department} onChange={(e) => update("department", e.target.value)} />
+            <div className="space-y-0.5">
+              <Label className="text-xs">Department</Label>
+              <Input className="h-7 text-xs" value={form.department} onChange={(e) => update("department", e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Budget Year</Label>
-              <Input type="number" value={form.budgetYear} onChange={(e) => update("budgetYear", Number(e.target.value))} />
+            <div className="space-y-0.5">
+              <Label className="text-xs">Year</Label>
+              <Input className="h-7 text-xs" type="number" value={form.budgetYear} onChange={(e) => update("budgetYear", Number(e.target.value))} />
             </div>
-            <div className="space-y-2">
-              <Label>Allocated Amount (PKR)</Label>
-              <Input type="number" value={form.allocatedAmount || ""} onChange={(e) => update("allocatedAmount", Number(e.target.value))} required />
+            <div className="space-y-0.5">
+              <Label className="text-xs">Amount (PKR)</Label>
+              <Input className="h-7 text-xs" type="number" value={form.allocatedAmount || ""} onChange={(e) => update("allocatedAmount", Number(e.target.value))} required />
             </div>
-            <div className="space-y-2">
-              <Label>Expected Cost (PKR)</Label>
-              <Input type="number" value={form.expectedCost || ""} onChange={(e) => update("expectedCost", Number(e.target.value))} />
+            <div className="space-y-0.5">
+              <Label className="text-xs">Expected Cost</Label>
+              <Input className="h-7 text-xs" type="number" value={form.expectedCost || ""} onChange={(e) => update("expectedCost", Number(e.target.value))} />
             </div>
-            <div className="space-y-2">
-              <Label>Currency</Label>
+            <div className="space-y-0.5">
+              <Label className="text-xs">Currency</Label>
               <Select value={form.currency} onValueChange={(v) => update("currency", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PKR">PKR</SelectItem>
                   <SelectItem value="USD">USD</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Funding Source</Label>
+            <div className="space-y-0.5">
+              <Label className="text-xs">Funding Source</Label>
               <Select value={form.fundingSource} onValueChange={(v) => update("fundingSource", v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {FUNDING_SOURCES.map((fs) => <SelectItem key={fs} value={fs}>{fs}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Budget Owner</Label>
+            <div className="space-y-0.5">
+              <Label className="text-xs">Owner</Label>
               <Select value={form.budgetOwner} onValueChange={(v) => update("budgetOwner", v)}>
-                <SelectTrigger><SelectValue placeholder="Select manager" /></SelectTrigger>
+                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   {managers.map((m) => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Priority</Label>
+            <div className="space-y-0.5">
+              <Label className="text-xs">Priority</Label>
               <Select value={form.priority} onValueChange={(v) => update("priority", v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 flex items-center gap-3 pt-6">
-              <Switch checked={form.approvalRequired} onCheckedChange={(v) => update("approvalRequired", v)} id="approval" />
-              <Label htmlFor="approval">Approval Required</Label>
+            <div className="flex items-center gap-1 pt-2">
+              <Switch checked={form.approvalRequired} onCheckedChange={(v) => update("approvalRequired", v)} id="approval" className="scale-75" />
+              <Label htmlFor="approval" className="text-xs">Approval Required</Label>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={2} />
+          <div className="space-y-0.5">
+            <Label className="text-xs">Description</Label>
+            <Textarea className="text-xs min-h-[0]" value={form.description} onChange={(e) => update("description", e.target.value)} rows={1} />
           </div>
-          <div className="space-y-2">
-            <Label>Remarks</Label>
-            <Textarea value={form.remarks} onChange={(e) => update("remarks", e.target.value)} rows={2} />
+          <div className="space-y-0.5">
+            <Label className="text-xs">Remarks</Label>
+            <Textarea className="text-xs min-h-[0]" value={form.remarks} onChange={(e) => update("remarks", e.target.value)} rows={1} />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit">{initialData ? "Update" : "Save"}</Button>
+          <DialogFooter className="pt-1">
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+            <Button type="submit" size="sm">{initialData ? "Update" : "Save"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
