@@ -90,7 +90,7 @@ const CalendarView = () => {
     queryFn: async ({ signal }) => {
       const { data, error } = await supabase.from("events").select("*").order("event_number").abortSignal(signal);
       if (error || !data?.length) return fallbackEvents;
-      return data;
+      return (data ?? []).filter((e: any) => e.title !== "Available" && e.title !== "Meeting");
     },
     initialData: fallbackEvents,
     retry: 2,
