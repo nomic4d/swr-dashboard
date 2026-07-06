@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -34,8 +34,12 @@ const defaultForm: BudgetForm = {
 
 export default function BudgetAllocationModal({ open, onClose, onSave, initialData, managers }: Props) {
   const [form, setForm] = useState<BudgetForm>(defaultForm);
+  const initializedRef = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (!open) { initializedRef.current = false; return; }
+    if (initializedRef.current && !initialData) return;
+    initializedRef.current = true;
     if (initialData) {
       const { id, spent, createdAt, updatedAt, ...rest } = initialData;
       setForm(rest);
