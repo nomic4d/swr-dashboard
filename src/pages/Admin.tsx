@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   Shield, UserPlus, RotateCcw, Pencil, Trash2, Loader2, Wallet,
@@ -51,6 +52,9 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [form, setForm] = useState({ email: "", password: "", full_name: "", department: "" });
   const [busy, setBusy] = useState(false);
+  const [resetPwTarget, setResetPwTarget] = useState<{ id: string; name: string } | null>(null);
+  const [resetPwValue, setResetPwValue] = useState("");
+  const [resetPwOpen, setResetPwOpen] = useState(false);
 
   const { data: profiles = [], isLoading, isError } = useQuery({
     queryKey: ["admin-profiles"],
@@ -168,6 +172,23 @@ const Admin = () => {
     }
   };
 
+  const directResetPw = useMutation({
+    mutationFn: async ({ targetUserId, newPassword }: { targetUserId: string; newPassword: string }) => {
+      const { error } = await supabase.rpc("admin_reset_password", {
+        target_user_id: targetUserId,
+        new_password: newPassword,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Password changed successfully");
+      setResetPwOpen(false);
+      setResetPwValue("");
+      setResetPwTarget(null);
+    },
+    onError: (error: any) => toast.error(error?.message || "Password reset failed"),
+  });
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
   }
@@ -259,6 +280,22 @@ const Admin = () => {
             </>
           )}
 
+          {/* Direct password reset dialog */}
+          <Dialog open={resetPwOpen} onOpenChange={(o) => { if (!o) { setResetPwOpen(false); setResetPwValue(""); } }}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Set Password for {resetPwTarget?.name}</DialogTitle>
+                <DialogDescription>Enter a new password for this user.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input type="password" placeholder="New password (min 6 chars)" minLength={6} value={resetPwValue} onChange={(e) => setResetPwValue(e.target.value)} />
+                <Button className="w-full" disabled={resetPwValue.length < 6 || directResetPw.isPending} onClick={() => resetPwTarget && directResetPw.mutate({ targetUserId: resetPwTarget.id, newPassword: resetPwValue })}>
+                  {directResetPw.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Set Password
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           {activeTab === "budget" && (
             <BudgetManagementView role={role} />
           )}
@@ -319,8 +356,8 @@ const Admin = () => {
                             <Button variant="outline" size="sm" onClick={() => updateProfile.mutate({ id: profile.id, updates: { role: profile.role === "admin" ? "staff" : "admin" } })}>
                               <Shield className="mr-2 h-4 w-4" />{profile.role === "admin" ? "Remove admin" : "Make admin"}
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleResetPassword(profile.email || "")} disabled={!profile.email}>
-                              <RotateCcw className="mr-2 h-4 w-4" />Reset password
+                            <Button variant="outline" size="sm" onClick={() => { setResetPwTarget({ id: profile.id, name: profile.full_name || profile.email || "" }); setResetPwOpen(true); }}>
+                              <RotateCcw className="mr-2 h-4 w-4" />Set Password
                             </Button>
                             <Button variant="destructive" size="sm" onClick={() => deleteProfile.mutate(profile.id)}>
                               <Trash2 className="mr-2 h-4 w-4" />Delete
