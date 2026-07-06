@@ -147,7 +147,7 @@ const CalendarView = () => {
         style={{ animationDelay: `${index * 60}ms` }}
         onClick={() => handleOpenEvent(event)}
       >
-        <div className={`bg-gradient-to-br ${theme.gradient} p-6 relative overflow-hidden`}>
+        <div className={`bg-gradient-to-br ${theme.gradient} p-4 relative overflow-hidden`}>
           <div className="absolute -right-4 -top-4 opacity-20">
             <Icon className="h-32 w-32 text-white" strokeWidth={1.2} />
           </div>
@@ -268,10 +268,10 @@ const CalendarView = () => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">Event Calendar</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">Event Calendar</h2>
           <p className="text-muted-foreground text-sm mt-2">Interactive calendar with role-based permissions</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -303,7 +303,7 @@ const CalendarView = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {visibleEvents.map((event, index) => renderCard(event, index))}
       </div>
 

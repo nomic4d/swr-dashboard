@@ -127,7 +127,7 @@ const GalleryUploadDialog = ({ open, onOpenChange, events }: { open: boolean; on
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
-            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 p-8 hover:border-blue-400/50 transition-colors cursor-pointer"
+            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 p-5 hover:border-blue-400/50 transition-colors cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           >
             <div className="rounded-full bg-muted p-3 mb-3">

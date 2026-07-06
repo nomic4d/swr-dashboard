@@ -35,9 +35,9 @@ const BudgetCharts = ({ budgets }: BudgetChartsProps) => {
     .slice(0, 10);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-card rounded-xl p-6">
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="glass-card rounded-xl p-4">
           <h3 className="font-semibold text-foreground mb-4">Monthly Spending</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={MONTHLY_SPENDING_DATA}>
@@ -59,7 +59,7 @@ const BudgetCharts = ({ budgets }: BudgetChartsProps) => {
           </ResponsiveContainer>
         </div>
 
-        <div className="glass-card rounded-xl p-6">
+        <div className="glass-card rounded-xl p-4">
           <h3 className="font-semibold text-foreground mb-4">Department Spending</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={DEPARTMENT_SPENDING} layout="vertical">
@@ -81,7 +81,7 @@ const BudgetCharts = ({ budgets }: BudgetChartsProps) => {
           </ResponsiveContainer>
         </div>
 
-        <div className="glass-card rounded-xl p-6">
+        <div className="glass-card rounded-xl p-4">
           <h3 className="font-semibold text-foreground mb-4">Category Breakdown</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -104,7 +104,7 @@ const BudgetCharts = ({ budgets }: BudgetChartsProps) => {
           </ResponsiveContainer>
         </div>
 
-        <div className="glass-card rounded-xl p-6">
+        <div className="glass-card rounded-xl p-4">
           <h3 className="font-semibold text-foreground mb-4">Quarterly Analysis</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={QUARTERLY_DATA}>
@@ -127,8 +127,8 @@ const BudgetCharts = ({ budgets }: BudgetChartsProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-card rounded-xl p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="glass-card rounded-xl p-4">
           <h3 className="font-semibold text-foreground mb-4">Top Spending Events</h3>
           {topSpendingEvents.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -154,7 +154,7 @@ const BudgetCharts = ({ budgets }: BudgetChartsProps) => {
           )}
         </div>
 
-        <div className="glass-card rounded-xl p-6">
+        <div className="glass-card rounded-xl p-4">
           <h3 className="font-semibold text-foreground mb-4">Annual Comparison</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={ANNUAL_DATA}>
@@ -177,7 +177,7 @@ const BudgetCharts = ({ budgets }: BudgetChartsProps) => {
         </div>
       </div>
 
-      <div className="glass-card rounded-xl p-6">
+      <div className="glass-card rounded-xl p-4">
         <h3 className="font-semibold text-foreground mb-4">Remaining Budget by Event</h3>
         <div className="space-y-3">
           {remainingBudgetData.slice(0, 8).map((item) => (

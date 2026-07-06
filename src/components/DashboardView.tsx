@@ -107,7 +107,7 @@ const DashboardView = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
         <p className="text-muted-foreground text-sm mt-1">SWR Yearly Calendar 2026 Overview</p>
@@ -133,7 +133,7 @@ const DashboardView = () => {
       {/* Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Upcoming Events - spans 2 columns */}
-        <div className="lg:col-span-2 glass-card rounded-xl p-6">
+        <div className="lg:col-span-2 glass-card rounded-xl p-4">
           <h3 className="font-semibold text-foreground mb-4">Upcoming Events</h3>
           <div className="space-y-3">
             {upcomingEvents.slice(0, 5).map((event) => (
@@ -159,7 +159,7 @@ const DashboardView = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="glass-card rounded-xl p-6">
+        <div className="glass-card rounded-xl p-4">
           <h3 className="font-semibold text-foreground mb-4">Activity Rules</h3>
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-accent/5 border border-accent/10">
@@ -181,7 +181,7 @@ const DashboardView = () => {
       {/* Budget + Donors */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Budget card - spans 2 */}
-        <div className="lg:col-span-2 glass-card rounded-xl p-6">
+        <div className="lg:col-span-2 glass-card rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600"><Wallet className="h-5 w-5" /></div>
@@ -210,7 +210,7 @@ const DashboardView = () => {
         </div>
 
         {/* Donor card */}
-        <div className="glass-card rounded-xl p-6">
+        <div className="glass-card rounded-xl p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2.5 rounded-lg bg-pink-500/10 text-pink-600"><HandHeart className="h-5 w-5" /></div>
             <div>

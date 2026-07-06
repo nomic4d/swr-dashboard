@@ -80,7 +80,7 @@ const BudgetDashboard = ({ budgets, totals }: BudgetDashboardProps) => {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card) => {
           const Icon = card.icon;
@@ -129,7 +129,7 @@ const BudgetDashboard = ({ budgets, totals }: BudgetDashboardProps) => {
         </div>
       )}
 
-      <div className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-6">
+      <div className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600"><BookOpen className="h-5 w-5" /></div>
           <div>

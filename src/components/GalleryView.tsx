@@ -108,7 +108,7 @@ const GalleryView = () => {
   }, [lightboxIndex, next, prev, closeLightbox]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Shared Media Gallery</h2>

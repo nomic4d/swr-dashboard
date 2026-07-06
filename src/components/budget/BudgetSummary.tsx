@@ -16,7 +16,7 @@ const BudgetSummary = ({ budgets }: Props) => {
   }, [budgets]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Budget Summary</h2>
         <p className="text-muted-foreground text-sm mt-1">Overview of all budgets (read-only)</p>
@@ -54,7 +54,7 @@ const BudgetSummary = ({ budgets }: Props) => {
         </div>
       </div>
 
-      <div className="glass-card rounded-xl p-6">
+      <div className="glass-card rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-foreground">Activity Budgets</h3>
         </div>

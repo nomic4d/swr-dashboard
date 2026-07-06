@@ -467,7 +467,7 @@ const BudgetView = () => {
   // ========== Render ==========
   if (!isManager) {
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-3 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Budget Overview</h2>
@@ -510,7 +510,7 @@ const BudgetView = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
