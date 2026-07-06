@@ -1,15 +1,13 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, isPast, addDays, startOfWeek, endOfWeek } from "date-fns";
+import { format, isPast } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { getPortalRole, canAccessManager } from "@/pages/portalUtils";
-import { getEventsForView, type CalendarViewMode } from "./calendarUtils";
 import CalendarEventModal from "./CalendarEventModal";
 import {
   MapPin,
@@ -61,8 +59,6 @@ export const eventTheme: Record<number, { icon: typeof Citrus; gradient: string;
 
 const CalendarView = () => {
   const { user } = useAuth();
-  const [view, setView] = useState<CalendarViewMode>("month");
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isManagerFormOpen, setIsManagerFormOpen] = useState(false);
@@ -77,7 +73,7 @@ const CalendarView = () => {
     departure_time: "",
     arrival_time: "",
     is_night_stay: false,
-    event_date: selectedDate,
+    event_date: format(new Date(), "yyyy-MM-dd"),
     event_time: "",
     timings: "",
   });
@@ -98,7 +94,13 @@ const CalendarView = () => {
     refetchOnWindowFocus: true,
   });
 
-  const visibleEvents = useMemo(() => getEventsForView(events, view, selectedDate), [events, view, selectedDate]);
+  const visibleEvents = useMemo(() =>
+    [...events].sort((a, b) => {
+      const aDate = a.event_date ? new Date(a.event_date).getTime() : 0;
+      const bDate = b.event_date ? new Date(b.event_date).getTime() : 0;
+      return aDate - bDate;
+    }),
+  [events]);
 
   const getFormValues = (event?: any) => {
     const description = typeof event?.description === "string" ? event.description : "";
@@ -126,7 +128,7 @@ const CalendarView = () => {
       departure_time: event?.departure_time || "",
       arrival_time: event?.arrival_time || "",
       is_night_stay: Boolean(event?.is_night_stay),
-      event_date: event?.event_date || selectedDate,
+      event_date: event?.event_date || format(new Date(), "yyyy-MM-dd"),
       event_time: event?.event_time || "",
       timings,
       detailLines,
@@ -257,7 +259,7 @@ const CalendarView = () => {
         departure_time: "",
         arrival_time: "",
         is_night_stay: false,
-        event_date: selectedDate,
+    event_date: format(new Date(), "yyyy-MM-dd"),
         event_time: "",
         timings: "",
       });
@@ -273,11 +275,6 @@ const CalendarView = () => {
           <p className="text-muted-foreground text-sm mt-2">Interactive calendar with role-based permissions</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {(["month", "week", "day", "agenda"] as CalendarViewMode[]).map((item) => (
-            <Button key={item} variant={view === item ? "default" : "outline"} size="sm" onClick={() => setView(item)}>
-              {item.charAt(0).toUpperCase() + item.slice(1)}
-            </Button>
-          ))}
           {canManage && (
             <Dialog open={isManagerFormOpen} onOpenChange={setIsManagerFormOpen}>
               <DialogTrigger asChild>
