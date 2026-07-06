@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useRef } from "react";
+import { useState } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -24,29 +24,22 @@ interface Props {
   managers: { id: string; name: string }[];
 }
 
-const defaultForm: BudgetForm = {
-  title: "", category: "Events", event: "", campaign: "", department: "",
-  budgetYear: 2026, allocatedAmount: 0, expectedCost: 0, currency: "PKR",
-  fundingSource: "Internal", budgetOwner: "", approvalRequired: false,
-  priority: "Medium", description: "", remarks: "", status: "Active",
-  managerId: "", managerName: "",
-};
+function initForm(initialData: BudgetAllocation | null | undefined): BudgetForm {
+  if (initialData) {
+    const { id, spent, createdAt, updatedAt, ...rest } = initialData;
+    return rest;
+  }
+  return {
+    title: "", category: "Events", event: "", campaign: "", department: "",
+    budgetYear: 2026, allocatedAmount: 0, expectedCost: 0, currency: "PKR",
+    fundingSource: "Internal", budgetOwner: "", approvalRequired: false,
+    priority: "Medium", description: "", remarks: "", status: "Active",
+    managerId: "", managerName: "",
+  };
+}
 
 export default function BudgetAllocationModal({ open, onClose, onSave, initialData, managers }: Props) {
-  const [form, setForm] = useState<BudgetForm>(defaultForm);
-  const initializedRef = useRef(false);
-
-  useLayoutEffect(() => {
-    if (!open) { initializedRef.current = false; return; }
-    if (initializedRef.current && !initialData) return;
-    initializedRef.current = true;
-    if (initialData) {
-      const { id, spent, createdAt, updatedAt, ...rest } = initialData;
-      setForm(rest);
-    } else {
-      setForm(defaultForm);
-    }
-  }, [initialData, open]);
+  const [form, setForm] = useState<BudgetForm>(() => initForm(initialData));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +51,7 @@ export default function BudgetAllocationModal({ open, onClose, onSave, initialDa
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
         <DialogHeader>
           <DialogTitle>{initialData ? "Edit Budget" : "Allocate Budget"}</DialogTitle>
           <DialogDescription>Fill in the budget details below.</DialogDescription>

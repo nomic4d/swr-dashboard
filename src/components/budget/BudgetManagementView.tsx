@@ -65,6 +65,7 @@ const BudgetManagementView = ({ role }: Props) => {
   const [allocModalOpen, setAllocModalOpen] = useState(false);
   const [editBudget, setEditBudget] = useState<BudgetAllocation | null>(null);
   const [viewBudget, setViewBudget] = useState<BudgetAllocation | null>(null);
+  const [allocModalKey, setAllocModalKey] = useState(0);
 
   const handleSaveBudget = useCallback(
     (data: any) => {
@@ -163,7 +164,7 @@ const BudgetManagementView = ({ role }: Props) => {
           {isManager && (
             <button
               className="inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground h-10 px-4 py-2 text-sm font-medium hover:bg-primary/90"
-              onClick={() => { setEditBudget(null); setAllocModalOpen(true); }}
+              onClick={() => { setEditBudget(null); setAllocModalKey(k => k + 1); setAllocModalOpen(true); }}
             >
               Allocate Budget
             </button>
@@ -192,7 +193,7 @@ const BudgetManagementView = ({ role }: Props) => {
           <BudgetTable
             budgets={budgets}
             onView={setViewBudget}
-            onEdit={(b) => { setEditBudget(b); setAllocModalOpen(true); }}
+            onEdit={(b) => { setEditBudget(b); setAllocModalKey(k => k + 1); setAllocModalOpen(true); }}
             onAllocateFunds={(b) => handleAction("release_funds", b.id)}
             onAddExpense={(b) => setViewBudget(b)}
             onUploadInvoice={(b) => setViewBudget(b)}
@@ -253,6 +254,7 @@ const BudgetManagementView = ({ role }: Props) => {
       </Tabs>
 
       <BudgetAllocationModal
+        key={allocModalKey}
         open={allocModalOpen}
         onClose={() => { setAllocModalOpen(false); setEditBudget(null); }}
         onSave={handleSaveBudget}
@@ -267,7 +269,7 @@ const BudgetManagementView = ({ role }: Props) => {
         expenses={expenses}
         invoices={invoices}
         timeline={timeline}
-        onEdit={(b) => { setViewBudget(null); setEditBudget(b); setAllocModalOpen(true); }}
+        onEdit={(b) => { setViewBudget(null); setEditBudget(b); setAllocModalKey(k => k + 1); setAllocModalOpen(true); }}
         onAddExpense={(b) => setViewBudget(b)}
         onAddExpenseSave={addExpense}
         onUpdateExpense={updateExpense}
