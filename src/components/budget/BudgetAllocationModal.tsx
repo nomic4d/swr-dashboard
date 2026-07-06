@@ -140,10 +140,6 @@ export default function BudgetAllocationModal({ open, onClose, onSave, initialDa
             <Label className="text-xs">Description</Label>
             <Textarea className="text-xs min-h-[0]" value={form.description} onChange={(e) => update("description", e.target.value)} rows={1} />
           </div>
-          <div className="space-y-0.5">
-            <Label className="text-xs">Remarks</Label>
-            <Textarea className="text-xs min-h-[0]" value={form.remarks} onChange={(e) => update("remarks", e.target.value)} rows={1} />
-          </div>
           <DialogFooter className="pt-1">
             <Button type="button" variant="outline" size="sm" onClick={onClose}>Cancel</Button>
             <Button type="submit" size="sm">{initialData ? "Update" : "Save"}</Button>
