@@ -5,6 +5,9 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
   :root {
     --background: 220 25% 97%;
     --foreground: 220 40% 13%;

@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LayoutDashboard, Table2, BarChart3, FileText, Building2, CreditCard,
@@ -21,13 +23,6 @@ import AuditLogs from "./AuditLogs";
 import BudgetReports from "./BudgetReports";
 import BudgetSummary from "./BudgetSummary";
 
-const managers = [
-  { id: "m1", name: "Asif Khan" },
-  { id: "m2", name: "Sana Malik" },
-  { id: "m3", name: "Ali Raza" },
-  { id: "m4", name: "Usman Ahmed" },
-];
-
 interface Props {
   role: PortalRole;
 }
@@ -45,6 +40,26 @@ const BudgetManagementView = ({ role }: Props) => {
     addInvoice, addPayment, updatePayment,
     markNotificationRead,
   } = useBudgetData();
+
+  const { data: managers = [] } = useQuery({
+    queryKey: ["budget-managers"],
+    queryFn: async () => {
+      const { data: staffRows } = await supabase.from("staff").select("id, name, email");
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, email, full_name")
+        .neq("email", null);
+      const profileList = (profiles ?? []).map((p: any) => ({ id: p.id, name: p.full_name || p.email }));
+      const staffList = (staffRows ?? []).map((s: any) => ({ id: s.id, name: s.name }));
+      const seen = new Set<string>();
+      return [...staffList, ...profileList].filter((m) => {
+        if (seen.has(m.name)) return false;
+        seen.add(m.name);
+        return true;
+      });
+    },
+    staleTime: 60000,
+  });
 
   const [activeTab, setActiveTab] = useState("overview");
   const [allocModalOpen, setAllocModalOpen] = useState(false);
