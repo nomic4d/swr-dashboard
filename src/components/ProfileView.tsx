@@ -220,7 +220,7 @@ const ProfileView = () => {
           <button onClick={() => coverInputRef.current?.click()} disabled={coverUploading} className="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:bg-black/60 transition-opacity">
             {coverUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           </button>
-          <div className="absolute top-4 left-4 z-10">
+          <div className="absolute top-6 left-6 z-10">
             <h1 className="text-4xl font-bold text-white drop-shadow-lg">{profile?.full_name || user.email?.split("@")[0] || "User"}</h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[11px] uppercase tracking-wide bg-white/20 text-white px-2.5 py-0.5 rounded-full font-medium backdrop-blur-sm">{profile?.role || "staff"}</span>
