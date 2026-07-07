@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { animatedEmojis } from "@/data/animatedEmojis";
+import { animatedEmojis, type AnimatedEmoji } from "@/data/animatedEmojis";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Image as ImageIcon, Video, Trash2, Folder, ChevronLeft, ChevronRight, X, Search, User, Camera, Loader2, LayoutGrid, ScrollText, Play, Heart, MessageCircle, Send, HeartOff, Settings, Minimize2, Move, ZoomIn, Repeat, Smile, ThumbsUp } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
   const [eventFilter, setEventFilter] = useState<string | null>(null);
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [stickerPreview, setStickerPreview] = useState<AnimatedEmoji | null>(null);
 
   const { data: albums = [], error: albumsError } = useQuery({
     queryKey: ["albums"],
@@ -539,7 +540,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                         <div className="min-w-0 flex-1">
                           <p className="text-base leading-relaxed">
                             <span className="font-semibold">{profileByEmail[c.user_email]?.full_name || "Unknown"}</span>{" "}
-                            <span className="text-muted-foreground [&>img]:inline [&>img]:h-8 [&>img]:w-8">{c.content}</span>
+                            <span className="text-muted-foreground [&_.emoji-sticker]:inline [&_.emoji-sticker]:h-16 [&_.emoji-sticker]:w-16 [&_.emoji-sticker]:align-middle" dangerouslySetInnerHTML={{ __html: c.content }} />
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
                             {new Date(c.created_at).toLocaleDateString()}
@@ -605,11 +606,23 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                       <PopoverContent side="top" align="end" className="w-[350px] p-2 border-border/50">
                         <div className="grid grid-cols-5 gap-1 max-h-[280px] overflow-y-auto">
                           {animatedEmojis.map((ae) => (
-                            <button key={ae.name} onClick={() => setCommentInputs((prev) => ({ ...prev, [currentItem.id]: (prev[currentItem.id] || "") + ae.emoji }))}
-                              className="p-1 rounded-md hover:bg-muted transition-colors flex items-center justify-center"
+                            <button key={ae.name}
+                              onMouseEnter={() => setStickerPreview(ae)}
+                              onMouseLeave={() => setStickerPreview(null)}
+                              onClick={() => {
+                                const stickerTag = `<img src="${ae.url}" alt="${ae.name}" class="emoji-sticker" />`;
+                                setCommentInputs((prev) => ({ ...prev, [currentItem.id]: (prev[currentItem.id] || "") + stickerTag }));
+                                setStickerPreview(null);
+                              }}
+                              className="p-1 rounded-md hover:bg-muted transition-colors flex items-center justify-center relative"
                               title={ae.name}
                             >
                               <img src={ae.url} alt={ae.name} className="h-12 w-12 object-contain" loading="lazy" />
+                              {stickerPreview?.name === ae.name && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none">
+                                  <img src={ae.url} alt={ae.name} className="h-24 w-24 object-contain drop-shadow-xl" />
+                                </div>
+                              )}
                             </button>
                           ))}
                         </div>
