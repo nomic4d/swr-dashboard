@@ -10,9 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { Plus, Phone, Trash2, UserCheck, UserX, Mail, Send, User as UserIcon, Upload, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { getPortalRole, canAccessManager } from "@/pages/portalUtils";
 
 const StaffView = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const role = getPortalRole(user?.email, user?.user_metadata?.role);
+  const isManager = canAccessManager(role);
   const [open, setOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<{ id: string; name: string; email: string } | null>(null);

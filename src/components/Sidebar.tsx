@@ -12,7 +12,7 @@ interface SidebarProps {
   onTabChange: (tab: string) => void;
 }
 
-const navItems = [
+const allNavItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "calendar", label: "Calendar", icon: Calendar },
   { id: "staff", label: "Staff", icon: Users },
@@ -28,6 +28,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const isAdmin = isAdminUser(user?.email, user?.user_metadata?.role);
   const role = getPortalRole(user?.email, user?.user_metadata?.role);
   const isManager = role === "manager" || role === "admin";
+  const navItems = allNavItems.filter((item) => (item.id !== "staff" && item.id !== "budget") || isManager);
   return (
     <aside className="w-56 bg-sidebar min-h-screen flex flex-col">
       <div className="p-4 border-b border-sidebar-border flex items-center justify-between">

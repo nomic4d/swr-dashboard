@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import EmojiPicker from "emoji-picker-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
-import { Image as ImageIcon, Video, Trash2, Folder, ChevronLeft, ChevronRight, X, Search, User, Camera, Loader2, LayoutGrid, ScrollText, Play, Heart, MessageCircle, Send, HeartOff, Settings, Minimize2, Move, ZoomIn, Repeat } from "lucide-react";
+import { Image as ImageIcon, Video, Trash2, Folder, ChevronLeft, ChevronRight, X, Search, User, Camera, Loader2, LayoutGrid, ScrollText, Play, Heart, MessageCircle, Send, HeartOff, Settings, Minimize2, Move, ZoomIn, Repeat, Smile } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getPortalRole } from "@/pages/portalUtils";
@@ -544,6 +546,14 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                         }
                       }}
                     />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground transition-colors"><Smile className="h-4 w-4" /></button>
+                      </PopoverTrigger>
+                      <PopoverContent side="top" align="end" className="w-full max-w-[320px] p-0 border-none">
+                        <EmojiPicker lazyLoad onEmojiClick={(emoji) => setCommentInputs((prev) => ({ ...prev, [currentItem.id]: (prev[currentItem.id] || "") + emoji.emoji }))} />
+                      </PopoverContent>
+                    </Popover>
                     <button disabled={!(commentInputs[currentItem.id] || "").trim()} onClick={() => {
                       addComment.mutate({ mediaId: currentItem.id, content: commentInputs[currentItem.id].trim() });
                       setCommentInputs((prev) => ({ ...prev, [currentItem.id]: "" }));

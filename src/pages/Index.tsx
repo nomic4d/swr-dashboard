@@ -13,7 +13,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { getPortalRole } from "@/pages/portalUtils";
+import { getPortalRole, canAccessManager } from "@/pages/portalUtils";
 import { LogOut, User, UserCircle, ArrowLeft, Menu, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +68,7 @@ const Index = () => {
   });
 
   const handleTabChange = (tab: string) => {
+    if ((tab === "staff" || tab === "budget") && !canAccessManager(role)) return;
     setActiveTab(tab);
     setMobileMenu(false);
   };
@@ -149,10 +150,10 @@ const Index = () => {
         </div>
         {activeTab === "dashboard" && <DashboardView />}
         {activeTab === "calendar" && <CalendarView />}
-        {activeTab === "staff" && <ErrorBoundary><StaffView /></ErrorBoundary>}
+        {activeTab === "staff" && canAccessManager(role) && <ErrorBoundary><StaffView /></ErrorBoundary>}
         {activeTab === "gallery" && <GalleryView onHeaderChange={setGalleryHeader} />}
         {activeTab === "contributors" && <ContributorsView />}
-        {activeTab === "budget" && <BudgetView />}
+        {activeTab === "budget" && canAccessManager(role) && <BudgetView />}
         {activeTab === "profile" && <ProfileView />}
         {activeTab === "messages" && <MessagesView />}
       </main>

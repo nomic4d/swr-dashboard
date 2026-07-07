@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ const MessagesView = () => {
     },
   });
 
-  const { data: staff = [] } = useQuery({
+  const { data: staffTable = [] } = useQuery({
     queryKey: ["staff"],
     queryFn: async () => {
       const { data, error } = await supabase.from("staff").select("*").eq("is_active", true);
@@ -56,6 +56,27 @@ const MessagesView = () => {
       return data;
     },
   });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["messages-profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("id, full_name, phone_number, email, avatar_url").order("full_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const staff = useMemo(() => {
+    const staffEmails = new Set((staffTable ?? []).map((s: any) => s.email).filter(Boolean));
+    const fromProfiles = (profiles ?? []).filter((p: any) => !staffEmails.has(p.email)).map((p: any) => ({
+      id: p.id,
+      name: p.full_name || p.email || "Unknown",
+      phone_number: p.phone_number || "N/A",
+      email: p.email || "",
+      is_active: true,
+    }));
+    return [...(staffTable ?? []), ...fromProfiles];
+  }, [staffTable, profiles]);
 
   // Auto-fill date based on selected event (1 day before event)
   const handleEventSelect = (id: string) => {
