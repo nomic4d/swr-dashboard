@@ -18,7 +18,7 @@ import {
   Gamepad2,
   Bus,
   Mountain,
-  Apple,
+  Grape,
   Trophy,
   Music,
   Footprints,
@@ -48,7 +48,7 @@ export const eventTheme: Record<number, { icon: typeof Citrus; gradient: string;
   3: { icon: Gamepad2, gradient: "from-sky-400 to-sky-600", ring: "ring-sky-400/40" },
   4: { icon: Bus, gradient: "from-cyan-400 to-cyan-600", ring: "ring-cyan-400/40" },
   5: { icon: Mountain, gradient: "from-indigo-400 to-indigo-600", ring: "ring-indigo-400/40" },
-  6: { icon: Apple, gradient: "from-amber-400 to-amber-600", ring: "ring-amber-400/40" },
+   6: { icon: Grape, gradient: "from-amber-400 to-amber-600", ring: "ring-amber-400/40" },
   7: { icon: Trophy, gradient: "from-rose-400 to-rose-600", ring: "ring-rose-400/40" },
   8: { icon: Music, gradient: "from-violet-400 to-violet-600", ring: "ring-violet-400/40" },
   9: { icon: Footprints, gradient: "from-teal-400 to-teal-600", ring: "ring-teal-400/40" },
@@ -84,7 +84,7 @@ const CalendarView = () => {
     queryFn: async ({ signal }) => {
       const { data, error } = await supabase.from("events").select("*").order("event_number").abortSignal(signal);
       if (error || !data?.length) return fallbackEvents;
-      return (data ?? []).filter((e: any) => e.title !== "Available" && e.title !== "Meeting");
+      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return t !== "available" && t !== "meeting"; });
     },
     initialData: fallbackEvents,
     retry: 2,
@@ -139,7 +139,7 @@ const CalendarView = () => {
     const Icon = theme.icon;
 
     return (
-      <div key={event.id} className="relative rounded-xl overflow-hidden bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+      <div key={event.id} className="relative rounded-xl overflow-hidden bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow min-h-[220px]">
         <div className={`bg-gradient-to-br ${theme.gradient} p-3 relative overflow-hidden`}>
           <div className="absolute -right-4 -top-4 opacity-15">
             <Icon className="h-24 w-24 text-white" strokeWidth={1.2} />
@@ -281,7 +281,7 @@ const CalendarView = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {visibleEvents.map((event, index) => renderCard(event, index))}
       </div>
 

@@ -149,8 +149,8 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md glass-card rounded-2xl p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ backgroundImage: "url('https://images.pexels.com/photos/33801846/pexels-photo-33801846.jpeg')", backgroundSize: "cover", backgroundPosition: "center" }}>
+      <div className="w-full max-w-md glass-card rounded-2xl p-8 space-y-6 relative">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground">SWR <span className="text-gradient">PRM</span></h1>
           <p className="text-sm text-muted-foreground mt-1">Staff portal · sign in to upload & contribute</p>

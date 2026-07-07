@@ -12,6 +12,7 @@ import StaffProfile from "./pages/StaffProfile.tsx";
 import Admin from "./pages/Admin.tsx";
 import ManagerDashboard from "./pages/ManagerDashboard.tsx";
 import BudgetManagement from "./pages/BudgetManagement.tsx";
+import "plyr/dist/plyr.css";
 
 const queryClient = new QueryClient();
 

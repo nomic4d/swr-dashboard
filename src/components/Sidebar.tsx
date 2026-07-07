@@ -1,10 +1,11 @@
-import { Calendar, Users, MessageSquare, LayoutDashboard, Image, Heart, Wallet, Shield, BarChart3 } from "lucide-react";
+import { Calendar, Users, MessageSquare, LayoutDashboard, Image, Heart, Wallet, Shield, BarChart3, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { isAdminUser } from "@/pages/adminUtils";
 import { getPortalRole } from "@/pages/portalUtils";
+import swrLogo from "@/assets/swrlogo.png";
 
 interface SidebarProps {
   activeTab: string;
@@ -19,6 +20,7 @@ const navItems = [
   { id: "contributors", label: "Contributors", icon: Heart },
   { id: "budget", label: "Budget", icon: Wallet },
   { id: "messages", label: "Messages", icon: MessageSquare },
+  { id: "profile", label: "Profile", icon: User },
 ];
 
 const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
@@ -29,10 +31,8 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   return (
     <aside className="w-56 bg-sidebar min-h-screen flex flex-col">
       <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-sidebar-foreground tracking-tight">
-            SWR <span className="text-gradient">PRM</span>
-          </h1>
+        <div className="pb-3">
+          <img src={swrLogo} alt="SWR" className="h-10 w-auto" />
         </div>
         <NotificationBell />
       </div>

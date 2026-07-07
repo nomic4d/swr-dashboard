@@ -126,7 +126,8 @@ const StaffView = () => {
   };
 
   return (
-    <div className="space-y-3 animate-fade-in">
+    <div className="space-y-3 animate-fade-in relative">
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none rounded-xl overflow-hidden" style={{ backgroundImage: "url('https://media.istockphoto.com/id/2184773448/photo/overhead-shot-of-business-panel-in-office-meeting-collaborating-around-large-table.jpg?s=612x612&w=0&k=20&c=NzQ7IQQnvvj8Z9K8iOw0I6kK6rX24PyoloIgQIEtAGc=')", backgroundSize: "cover", backgroundPosition: "center" }} />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Staff Management</h2>
@@ -202,7 +203,7 @@ const StaffView = () => {
         {staff.map((member, index) => (
           <div
             key={member.id}
-            className="glass-card rounded-xl p-5 animate-slide-up"
+            className="glass-card rounded-xl p-5 animate-slide-up bg-card/20"
             style={{ animationDelay: `${index * 40}ms` }}
           >
             <div className="flex items-start gap-3">
@@ -212,7 +213,7 @@ const StaffView = () => {
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${member.is_active ? "bg-success" : "bg-muted-foreground/30"}`} />
+                  <div className={`w-2 h-2 rounded-full ${member.is_active ? "bg-muted-foreground/40" : "bg-muted-foreground/30"}`} />
                   <h3 className="font-semibold text-foreground truncate">{member.name}</h3>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5 text-sm text-muted-foreground">
@@ -237,7 +238,7 @@ const StaffView = () => {
                   className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   title={member.is_active ? "Deactivate" : "Activate"}
                 >
-                  {member.is_active ? <UserCheck className="h-4 w-4 text-success" /> : <UserX className="h-4 w-4" />}
+                  {member.is_active ? <UserCheck className="h-4 w-4 text-muted-foreground/40" /> : <UserX className="h-4 w-4" />}
                 </button>
                 <button
                   onClick={() => deleteStaff.mutate(member.id)}

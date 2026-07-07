@@ -18,7 +18,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
 
-    --primary: 262 83% 58%;
+    --primary: 216 60% 47%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 4.8% 95.9%;
@@ -27,7 +27,7 @@
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
 
-    --accent: 262 83% 58%;
+    --accent: 216 60% 47%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -35,30 +35,30 @@
 
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 262 83% 58%;
+    --ring: 216 60% 47%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary: 216 60% 47%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-ring: 216 60% 47%;
 
     --success: 152 60% 40%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 262 83% 58%;
+    --info: 216 60% 47%;
     --info-foreground: 0 0% 100%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(230 70% 50%));
+    --gradient-primary: linear-gradient(135deg, hsl(216 60% 47%), hsl(230 70% 50%));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(240 4% 96%));
     --shadow-card: 0 1px 3px 0 hsl(240 10% 3.9% / 0.06), 0 1px 2px -1px hsl(240 10% 3.9% / 0.06);
-    --shadow-card-hover: 0 10px 25px -5px hsl(262 83% 58% / 0.15), 0 8px 10px -6px hsl(262 83% 58% / 0.1);
+    --shadow-card-hover: 0 10px 25px -5px hsl(216 60% 47% / 0.15), 0 8px 10px -6px hsl(216 60% 47% / 0.1);
   }
 
   .dark {
@@ -71,7 +71,7 @@
     --popover: 240 10% 5.9%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 262 83% 58%;
+    --primary: 216 60% 47%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 3.7% 15.9%;
@@ -80,7 +80,7 @@
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
 
-    --accent: 262 83% 58%;
+    --accent: 216 60% 47%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
@@ -88,20 +88,20 @@
 
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 262 83% 58%;
+    --ring: 216 60% 47%;
 
     --sidebar-background: 240 10% 3.9%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary: 216 60% 47%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-ring: 216 60% 47%;
 
     --gradient-card: linear-gradient(145deg, hsl(240 10% 5.9%), hsl(240 10% 8%));
     --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-card-hover: 0 10px 25px -5px hsl(262 83% 58% / 0.2), 0 8px 10px -6px hsl(262 83% 58% / 0.15);
+    --shadow-card-hover: 0 10px 25px -5px hsl(216 60% 47% / 0.2), 0 8px 10px -6px hsl(216 60% 47% / 0.15);
   }
 }
 
@@ -118,7 +118,7 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50;
+    @apply bg-card/80 backdrop-blur-sm;
     box-shadow: var(--shadow-card);
     transition: box-shadow 0.3s ease, transform 0.2s ease;
   }
@@ -162,4 +162,40 @@
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-60px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(60px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes flipIn {
+  from { opacity: 0; transform: rotateY(90deg); }
+  to { opacity: 1; transform: rotateY(0); }
+}
+.animate-fadeIn { animation: fadeIn 0.35s ease-out; }
+.animate-slideInLeft { animation: slideInLeft 0.35s ease-out; }
+.animate-slideInRight { animation: slideInRight 0.35s ease-out; }
+.animate-zoomIn { animation: zoomIn 0.35s ease-out; }
+.animate-flipIn { animation: flipIn 0.35s ease-out; }
+
+/* Plyr inside dialogs: raise z-index so controls aren't behind overlay */
+.plyr__controls {
+  z-index: 60 !important;
+}
+.plyr__control {
+  z-index: 61 !important;
+}
+.plyr__progress {
+  z-index: 60 !important;
+}
+.plyr--full-ui {
+  z-index: 55 !important;
 }
