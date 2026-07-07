@@ -27,6 +27,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
   const [slideDir, setSlideDir] = useState<"left" | "right">("left");
   const [mediaFilter, setMediaFilter] = useState<"all" | "image" | "video">("all");
   const [eventFilter, setEventFilter] = useState<string | null>(null);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
   const { data: albums = [], error: albumsError } = useQuery({
@@ -212,26 +213,13 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
         </div>
       )}
 
-      <div className="flex items-center gap-1.5 rounded-xl border bg-card/60 px-2 py-1.5 overflow-x-auto scrollbar-thin">
-        <button onClick={() => setEventFilter(null)}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-all shrink-0 ${eventFilter === null ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
-        >
-          All Events
-        </button>
-        {events.map((e: any) => {
-          const theme = eventTheme[e.event_number as number];
-          const Icon = theme?.icon || ImageIcon;
-          const isActive = eventFilter === e.id;
-          return (
-            <button key={e.id} onClick={() => setEventFilter(isActive ? null : e.id)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-all shrink-0 ${isActive ? "text-white shadow-sm bg-gradient-to-br " + theme?.gradient : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {e.title}
-            </button>
-          );
-        })}
-      </div>
+      <div className="flex gap-3">
+        <div className="flex-1 min-w-0">
+          <button onClick={() => setShowFilterSidebar(true)}
+            className="lg:hidden mb-2 flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          >
+            <ImageIcon className="h-3.5 w-3.5" /> Filter by Event
+          </button>
 
       {!activeAlbum ? (
         filteredAlbums.length === 0 ? (
@@ -389,6 +377,42 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
           )}
         </div>
       )}
+        </div>
+
+        {/* Left sidebar filter */}
+        <div className={`${showFilterSidebar ? "fixed inset-0 z-40 lg:relative lg:inset-auto" : "hidden lg:block"} lg:w-56 shrink-0`}>
+          <div className={`${showFilterSidebar ? "absolute inset-0 bg-black/40 lg:hidden" : ""}`} onClick={() => setShowFilterSidebar(false)} />
+          <div className={`${showFilterSidebar ? "absolute left-0 top-0 h-full w-56 bg-card border-r shadow-xl lg:relative lg:shadow-none" : ""} lg:block p-2 space-y-1 rounded-xl border bg-card/60 max-h-[calc(100vh-8rem)] overflow-y-auto`}>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Events</span>
+              <button onClick={() => setShowFilterSidebar(false)} className="lg:hidden p-1 rounded text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+            </div>
+            <button onClick={() => { setEventFilter(null); setShowFilterSidebar(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${eventFilter === null ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            >
+              <div className="w-7 h-7 rounded-lg bg-muted-foreground/20 flex items-center justify-center shrink-0">
+                <ImageIcon className="h-3.5 w-3.5" />
+              </div>
+              All Events
+            </button>
+            {events.map((e: any) => {
+              const theme = eventTheme[e.event_number as number];
+              const Icon = theme?.icon || ImageIcon;
+              const isActive = eventFilter === e.id;
+              return (
+                <button key={e.id} onClick={() => { setEventFilter(isActive ? null : e.id); setShowFilterSidebar(false); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isActive ? "text-white shadow-sm bg-gradient-to-br " + theme?.gradient : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                >
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isActive ? "bg-white/20" : "bg-gradient-to-br " + (theme?.gradient || "from-gray-400 to-gray-600")}`}>
+                    <Icon className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <span className="truncate">{e.title}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       <AlbumCreateDialog
         open={showAlbumCreate}
