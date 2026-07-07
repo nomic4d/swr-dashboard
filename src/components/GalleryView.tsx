@@ -479,30 +479,32 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
 
       {/* Instagram-style Lightbox */}
       <Dialog open={lightboxIndex !== null} onOpenChange={(o) => !o && closeLightbox()}>
-        <DialogContent className="max-w-5xl p-0 bg-black/95 border-0 rounded-[15px] overflow-hidden">
+        <DialogContent className="max-w-5xl p-0 border-0 rounded-[15px] overflow-hidden bg-black/20 backdrop-blur-xl">
           <DialogHeader className="sr-only"><DialogTitle>Preview</DialogTitle></DialogHeader>
           {currentItem && (
             <div className="flex flex-col md:flex-row max-h-[80vh]">
               {/* Left: Photo/Video */}
-              <div className="relative flex-1 flex items-center justify-center bg-black min-h-[40vh] md:min-h-[70vh]">
-                <button onClick={closeLightbox} className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white"><X className="h-5 w-5" /></button>
+              <div className="relative flex-1 flex items-center justify-center min-h-[40vh] md:min-h-[70vh] overflow-hidden">
+                <div className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-xl scale-110 opacity-60" style={{ backgroundImage: `url(${currentItem.media_type === "video" ? (currentItem.thumbnail_url || currentItem.media_url) : currentItem.media_url})` }} />
+                <div className="absolute inset-0 bg-black/20" />
+                <button onClick={closeLightbox} className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"><X className="h-5 w-5" /></button>
                 {user?.id === currentItem.uploader_id && (
-                  <button onClick={() => { closeLightbox(); deleteMedia.mutate(currentItem.id); }} className="absolute top-3 left-3 z-10 p-2 rounded-full bg-black/50 hover:bg-red-600 text-white"><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => { closeLightbox(); deleteMedia.mutate(currentItem.id); }} className="absolute top-3 left-3 z-20 p-2 rounded-full bg-black/40 hover:bg-red-600 text-white backdrop-blur-sm"><Trash2 className="h-4 w-4" /></button>
                 )}
                 {filteredMedia.length > 1 && (
                   <>
-                    <button onClick={prev} className="absolute left-3 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white"><ChevronLeft className="h-6 w-6" /></button>
-                    <button onClick={next} className="absolute right-3 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white"><ChevronRight className="h-6 w-6" /></button>
+                    <button onClick={prev} className="absolute left-3 z-20 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"><ChevronLeft className="h-6 w-6" /></button>
+                    <button onClick={next} className="absolute right-3 z-20 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"><ChevronRight className="h-6 w-6" /></button>
                   </>
                 )}
                 {currentItem.media_type === "video" ? (
                   <PlyrVideo src={currentItem.media_url} poster={currentItem.thumbnail_url} />
                 ) : (
                   <img key={lightboxIndex + transitionType + slideDir} src={currentItem.media_url} alt={currentItem.caption || ""}
-                    className={`max-h-[85vh] max-w-full object-contain ${transitionType === "fade" ? "animate-fadeIn" : transitionType === "slide" ? (slideDir === "right" ? "animate-slideInRight" : "animate-slideInLeft") : transitionType === "zoom" ? "animate-zoomIn" : "animate-flipIn"}`}
+                    className={`max-h-[85vh] max-w-full object-contain relative z-10 ${transitionType === "fade" ? "animate-fadeIn" : transitionType === "slide" ? (slideDir === "right" ? "animate-slideInRight" : "animate-slideInLeft") : transitionType === "zoom" ? "animate-zoomIn" : "animate-flipIn"}`}
                   />
                 )}
-                <div className="absolute bottom-3 left-3 text-[11px] text-white/60">{lightboxIndex + 1} / {filteredMedia.length}</div>
+                <div className="absolute bottom-3 left-3 z-20 text-[11px] text-white/80">{lightboxIndex + 1} / {filteredMedia.length}</div>
               </div>
 
               {/* Right: Likes & Comments (Instagram style) */}
