@@ -25,8 +25,6 @@ import {
   Film,
   Sparkles,
   Plus,
-  Pencil,
-  Trash2,
   Eye,
   CalendarDays,
 } from "lucide-react";
@@ -141,62 +139,42 @@ const CalendarView = () => {
     const Icon = theme.icon;
 
     return (
-      <div
-        key={event.id}
-        className="group rounded-2xl overflow-hidden bg-card border border-border/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.35)] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] hover:-translate-y-1 transition-all duration-300 animate-slide-up"
-        style={{ animationDelay: `${index * 60}ms` }}
-        onClick={() => handleOpenEvent(event)}
-      >
-        <div className={`bg-gradient-to-br ${theme.gradient} p-4 relative overflow-hidden`}>
-          <div className="absolute -right-4 -top-4 opacity-20">
-            <Icon className="h-32 w-32 text-white" strokeWidth={1.2} />
+      <div key={event.id} className="relative rounded-xl overflow-hidden bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+        <div className={`bg-gradient-to-br ${theme.gradient} p-3 relative overflow-hidden`}>
+          <div className="absolute -right-4 -top-4 opacity-15">
+            <Icon className="h-24 w-24 text-white" strokeWidth={1.2} />
           </div>
           <div className="relative flex items-center justify-between">
-            <div className={`p-2.5 rounded-xl bg-white/25 backdrop-blur-sm ring-2 ${theme.ring}`}>
-              <Icon className="h-6 w-6 text-white" strokeWidth={2.2} />
+            <div className={`p-1.5 rounded-lg bg-white/25 backdrop-blur-sm ring-2 ${theme.ring}`}>
+              <Icon className="h-4 w-4 text-white" strokeWidth={2.2} />
             </div>
-            <span className="text-xs bg-white/25 text-white px-2.5 py-1 rounded-full font-bold backdrop-blur-sm">
-              #{event.event_number}
-            </span>
+            <span className="text-[10px] bg-white/25 text-white px-2 py-0.5 rounded-full font-bold backdrop-blur-sm">#{event.event_number}</span>
           </div>
-          <h3 className="relative text-xl md:text-2xl font-bold text-white mt-4 leading-tight drop-shadow">{event.title}</h3>
-          <p className="relative text-white/80 text-xs font-medium mt-1">{event.month}</p>
+          <h3 className="relative text-sm font-bold text-white mt-2 leading-tight drop-shadow">{event.title}</h3>
+          <p className="relative text-white/80 text-[10px] font-medium mt-0.5">{event.month}</p>
         </div>
-        <div className="p-4 space-y-2">
+        <div className="p-2.5 space-y-1">
           {event.event_date && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CalendarIcon className="h-3.5 w-3.5" />
-              <span>{format(new Date(event.event_date), "EEEE, MMMM d, yyyy")}</span>
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <CalendarIcon className="h-3 w-3" />
+              <span>{format(new Date(event.event_date), "MMM d, yyyy")}</span>
             </div>
           )}
           {event.location && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <MapPin className="h-3 w-3" />
               <span>{event.location}</span>
             </div>
           )}
-          {past && (
-            <span className="inline-block text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Completed</span>
-          )}
+          {past && <span className="inline-block text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Completed</span>}
         </div>
-        {canManage && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-            <button
-              className="pointer-events-auto rounded-full bg-white/90 p-2 text-slate-800 shadow"
-              onClick={(e) => { e.stopPropagation(); handleEditEvent(event); }}
-              title="Edit"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-            <button
-              className="pointer-events-auto rounded-full bg-white/90 p-2 text-rose-600 shadow"
-              onClick={(e) => { e.stopPropagation(); }}
-              title="Delete"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        <button
+          onClick={() => handleOpenEvent(event)}
+          className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-foreground/70 hover:text-foreground shadow-sm transition-colors z-10"
+          title="Event info"
+        >
+          <Eye className="h-3.5 w-3.5" />
+        </button>
       </div>
     );
   };
@@ -268,27 +246,27 @@ const CalendarView = () => {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-3 animate-fade-in">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">Event Calendar</h2>
-          <p className="text-muted-foreground text-sm mt-2">Interactive calendar with role-based permissions</p>
+          <h2 className="text-lg font-bold text-foreground">Events</h2>
+          <p className="text-[11px] text-muted-foreground">Upcoming and past events</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           {canManage && (
             <Dialog open={isManagerFormOpen} onOpenChange={setIsManagerFormOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2"><Plus className="h-4 w-4" /> New Event</Button>
+                <Button size="sm" className="gap-1"><Plus className="h-3.5 w-3.5" /> New</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>Create event</DialogTitle></DialogHeader>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Input placeholder="Event name" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
                   <Input placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
                   <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                   <Input placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
                   <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
-                  <Button className="w-full" onClick={handleCreateEvent}>Save event</Button>
+                  <Button size="sm" className="w-full" onClick={handleCreateEvent}>Save event</Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -297,13 +275,13 @@ const CalendarView = () => {
       </div>
 
       {isFetching && (
-        <div className="flex items-center justify-center rounded-lg border border-border/50 bg-card/60 py-3 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          <span className="text-sm">Refreshing latest events…</span>
+        <div className="flex items-center justify-center rounded-lg border bg-card/60 py-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+          Refreshing…
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         {visibleEvents.map((event, index) => renderCard(event, index))}
       </div>
 
