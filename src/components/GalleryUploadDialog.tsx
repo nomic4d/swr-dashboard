@@ -65,8 +65,7 @@ const GalleryUploadDialog = ({ open, onOpenChange, events }: { open: boolean; on
 
         try {
           const ext = fileItem.file.name.split(".").pop();
-          const folder = (user.email?.split("@")[0] || "user").replace(/[^a-zA-Z0-9-_]/g, "_");
-          const path = `${folder}/${targetEventId}/${fileItem.id}.${ext}`;
+          const path = `${user.id}/${targetEventId}/${fileItem.id}.${ext}`;
 
           const { error: upErr } = await supabase.storage.from("event-media").upload(path, fileItem.file, {
             cacheControl: "3600",

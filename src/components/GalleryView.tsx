@@ -6,12 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Image as ImageIcon, Video, Trash2, Lock, Folder, ChevronLeft, ChevronRight, X, Search, Eye, Heart, MessageCircle, Share2, Download, Star, Loader2 } from "lucide-react";
+import { Image as ImageIcon, Video, Trash2, Folder, ChevronLeft, ChevronRight, X, Search, Eye, Heart, MessageCircle, Share2, Download, Star, Loader2, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { eventTheme } from "./CalendarView";
-import { filterAndSortGalleryMedia, getVisibleGalleryMedia } from "./galleryUtils";
 import { getPortalRole } from "@/pages/portalUtils";
 import GalleryUploadDialog from "./GalleryUploadDialog";
 
@@ -24,17 +23,18 @@ const GalleryView = () => {
   const [search, setSearch] = useState("");
   const [mediaType, setMediaType] = useState<"all" | "photo" | "video">("all");
   const [sortBy, setSortBy] = useState<"latest" | "oldest" | "popular" | "featured">("latest");
+  const [myUploadsOnly, setMyUploadsOnly] = useState(false);
 
-  const { data: events = [] } = useQuery({
+  const { data: events = [], error: eventsError } = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
       const { data, error } = await supabase.from("events").select("*").order("event_number");
       if (error) throw error;
-      return data;
+      return (data ?? []).filter((e: any) => e.title !== "Available" && e.title !== "Meeting");
     },
   });
 
-  const { data: media = [] } = useQuery({
+  const { data: media = [], error: mediaError, isLoading } = useQuery({
     queryKey: ["event_media"],
     queryFn: async () => {
       const { data, error } = await supabase.from("event_media").select("*").order("created_at", { ascending: false });
@@ -43,36 +43,10 @@ const GalleryView = () => {
     },
   });
 
-  const { data: galleryModeration = {} } = useQuery({
-    queryKey: ["gallery-moderation"],
-    enabled: !!user,
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase.from("gallery_moderation").select("media_id, approved, featured");
-        if (error) throw error;
-        return (data ?? []).reduce((acc: Record<string, { approved?: boolean; featured?: boolean }>, item: any) => {
-          acc[item.media_id] = { approved: item.approved, featured: item.featured };
-          return acc;
-        }, {});
-      } catch {
-        return {};
-      }
-    },
-  });
-
   const role = user ? getPortalRole(user.email, (user as any)?.user_metadata?.role) : "member";
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.email],
-    enabled: !!user?.email,
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, department, avatar_url").eq("email", user!.email).maybeSingle();
-      return data;
-    },
-  });
-
   const currentEventId = activeEvent ?? events[0]?.id;
-  const canUploadGallery = Boolean(user && (role === "manager" || role === "admin" || role === "staff"));
+  const canUpload = Boolean(user && (role === "manager" || role === "admin" || role === "staff"));
 
   const deleteMedia = useMutation({
     mutationFn: async (id: string) => {
@@ -82,14 +56,27 @@ const GalleryView = () => {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["event_media"] }); toast.success("Deleted"); },
   });
 
-  const visibleMedia = getVisibleGalleryMedia(media, [], currentEventId, {
-    currentUserId: user?.id,
-    approvedUploaderIds: [],
-    role: user ? (role === "manager" || role === "admin" ? "staff" : "member") : "member",
-    canModerate: Boolean(user && (role === "manager" || role === "admin")),
-    moderation: galleryModeration,
-  });
-  const filtered = filterAndSortGalleryMedia(visibleMedia, { query: search, mediaType, sortBy });
+  const visibleMedia = myUploadsOnly && user
+    ? media.filter((m) => m.uploader_id === user.id)
+    : media;
+
+  const filtered = visibleMedia
+    .filter((m) => {
+      if (search) {
+        const q = search.toLowerCase();
+        const captionMatch = (m.caption || "").toLowerCase().includes(q);
+        const descMatch = (m.description || "").toLowerCase().includes(q);
+        if (!captionMatch && !descMatch) return false;
+      }
+      if (mediaType === "photo" && m.media_type === "video") return false;
+      if (mediaType === "video" && m.media_type !== "video") return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "oldest") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
   const images = filtered.filter((m) => m.media_type !== "video");
 
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
@@ -111,28 +98,49 @@ const GalleryView = () => {
     <div className="space-y-3 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Shared Media Gallery</h2>
-          <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
-            {user ? <><Folder className="h-3.5 w-3.5 text-blue-500" /> {canUploadGallery ? "Approved team and shared uploads are shown" : "Only approved uploads are visible"}</> : "Photos & videos from each event"}
+          <h2 className="text-2xl font-bold text-foreground">
+            {myUploadsOnly ? "My Uploads" : "Shared Media Gallery"}
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            {user ? "Everyone can upload and view media" : "Photos & videos from each event"}
           </p>
         </div>
-        {user ? (
-          <>
-            <GalleryUploadDialog open={open} onOpenChange={setOpen} events={events} />
-            {canUploadGallery ? (
-              <Button onClick={() => setOpen(true)} className="gap-2">
-                <ImageIcon className="h-4 w-4" /> Upload Media
-              </Button>
-            ) : (
-              <Button variant="outline" className="gap-2" disabled>
-                <Lock className="h-4 w-4" /> Awaiting approval
-              </Button>
-            )}
-          </>
-        ) : (
-          <Link to="/auth"><Button variant="outline" className="gap-2"><Lock className="h-4 w-4" /> Sign in to upload</Button></Link>
-        )}
+        <div className="flex items-center gap-2">
+          {user && (
+            <Button
+              variant={myUploadsOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMyUploadsOnly(!myUploadsOnly)}
+              className="gap-2"
+            >
+              <User className="h-4 w-4" /> {myUploadsOnly ? "All Media" : "My Uploads"}
+            </Button>
+          )}
+          {user ? (
+            <>
+              <GalleryUploadDialog open={open} onOpenChange={setOpen} events={events} />
+              {canUpload ? (
+                <Button onClick={() => setOpen(true)} className="gap-2">
+                  <ImageIcon className="h-4 w-4" /> Upload Media
+                </Button>
+              ) : (
+                <Button variant="outline" className="gap-2" disabled>
+                  <ImageIcon className="h-4 w-4" /> Upload
+                </Button>
+              )}
+            </>
+          ) : (
+            <Link to="/auth"><Button variant="outline" className="gap-2">Sign in to upload</Button></Link>
+          )}
+        </div>
       </div>
+
+      {(eventsError || mediaError) && (
+        <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-3 text-sm text-red-700 dark:text-red-300">
+          <p className="font-medium">Failed to load gallery</p>
+          <p className="text-xs mt-1">{(eventsError as any)?.message || (mediaError as any)?.message || "Check console for details"}</p>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card/60 p-3">
         <div className="flex flex-1 items-center gap-2 rounded-full border bg-background px-3 py-2">
@@ -152,11 +160,15 @@ const GalleryView = () => {
           <SelectContent>
             <SelectItem value="latest">Latest</SelectItem>
             <SelectItem value="oldest">Oldest</SelectItem>
-            <SelectItem value="popular">Popular</SelectItem>
-            <SelectItem value="featured">Featured</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {myUploadsOnly && (
+        <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+          <User className="h-4 w-4" /> Showing only your uploads. Toggle to see all shared media.
+        </div>
+      )}
 
       <Tabs value={currentEventId} onValueChange={setActiveEvent}>
         <TabsList className="flex-wrap h-auto justify-start gap-2 bg-transparent p-0">
@@ -201,13 +213,16 @@ const GalleryView = () => {
             {filtered.length === 0 ? (
               <div className="glass-card rounded-xl p-12 text-center text-muted-foreground">
                 <Folder className="h-10 w-10 mx-auto mb-3 opacity-40 text-blue-500" />
-                <p className="font-medium">No shared media in this folder yet.</p>
-                {user && <p className="text-xs mt-2">Uploads will appear here once they are approved and available.</p>}
+                <p className="font-medium">
+                  {myUploadsOnly ? "You haven't uploaded anything here yet." : "No shared media in this folder yet."}
+                </p>
+                {canUpload && <p className="text-xs mt-2">Click Upload Media to add photos or videos.</p>}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filtered.map((m) => {
                   const imageIdx = images.findIndex((im) => im.id === m.id);
+                  const isOwn = user?.id === m.uploader_id;
                   return (
                     <div key={m.id} className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl">
                       {m.media_type === "video" ? (
@@ -221,7 +236,11 @@ const GalleryView = () => {
                         <span className="rounded-full bg-white/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur">
                           {m.media_type === "video" ? "Video" : "Photo"}
                         </span>
-                        {Boolean((m as any).featured) && <Star className="h-4 w-4 text-amber-300" />}
+                        {isOwn && (
+                          <span className="rounded-full bg-blue-500/60 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur flex items-center gap-1">
+                            <User className="h-3 w-3" /> You
+                          </span>
+                        )}
                       </div>
                       <div className="space-y-2 p-3">
                         <div className="flex items-start justify-between gap-2">
@@ -229,7 +248,7 @@ const GalleryView = () => {
                             <p className="text-sm font-semibold text-foreground">{m.caption || "Untitled media"}</p>
                             <p className="text-xs text-muted-foreground">{m.description || "Shared with the team"}</p>
                           </div>
-                          {user?.id === m.uploader_id && (
+                          {isOwn && (
                             <button onClick={() => deleteMedia.mutate(m.id)} className="rounded-full p-1 text-destructive opacity-0 transition group-hover:opacity-100">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
