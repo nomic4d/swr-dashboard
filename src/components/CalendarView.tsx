@@ -87,7 +87,7 @@ const CalendarView = () => {
     queryFn: async ({ signal }) => {
       const { data, error } = await supabase.from("events").select("*").order("event_number").abortSignal(signal);
       if (error || !data?.length) return fallbackEvents;
-      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return t !== "available" && t !== "meeting"; });
+      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !t.includes("available") && !t.includes("meeting"); });
     },
     initialData: fallbackEvents,
     retry: 2,

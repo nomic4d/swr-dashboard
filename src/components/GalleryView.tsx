@@ -26,6 +26,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
   const [transitionType, setTransitionType] = useState<"fade" | "slide" | "zoom" | "flip">("fade");
   const [slideDir, setSlideDir] = useState<"left" | "right">("left");
   const [mediaFilter, setMediaFilter] = useState<"all" | "image" | "video">("all");
+  const [eventFilter, setEventFilter] = useState<string | null>(null);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
   const { data: albums = [], error: albumsError } = useQuery({
@@ -53,7 +54,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
     queryFn: async () => {
       const { data, error } = await supabase.from("events").select("*").order("event_number");
       if (error) throw error;
-      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return t !== "available" && t !== "meeting"; });
+      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !t.includes("available") && !t.includes("meeting"); });
     },
     staleTime: 120000,
   });
@@ -168,8 +169,6 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["media_comments"] }); toast.success("Comment deleted"); },
   });
-
-  const [eventFilter, setEventFilter] = useState<string | null>(null);
 
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
   const next = useCallback(() => { setSlideDir("right"); setLightboxIndex((i) => (i === null ? null : (i + 1) % filteredMedia.length)); }, [filteredMedia.length]);
