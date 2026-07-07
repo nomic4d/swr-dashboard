@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Wallet, TrendingUp, TrendingDown, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Wallet, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 
 const fmt = (n: number) => `PKR ${n.toLocaleString()}`;
 const statusColor: Record<string, string> = {
@@ -26,7 +26,7 @@ const statusColor: Record<string, string> = {
 };
 
 const initialForm = {
-  title: "", category_id: "", event_id: "", department: "",
+  title: "", category_id: "", event_id: "", campaign_id: "", department: "",
   allocated_amount: "", expected_cost: "", funding_source: "", budget_owner: "",
   priority: "medium", description: "", remarks: "", approval_required: true,
 };
@@ -67,11 +67,6 @@ const BudgetView = () => {
     },
   });
 
-  const totalAllocated = budgets.reduce((s: number, b: any) => s + Number(b.allocated_amount), 0);
-  const totalSpent = budgets.reduce((s: number, b: any) => s + Number(b.spent_amount), 0);
-  const totalRemaining = totalAllocated - totalSpent;
-  const usagePct = totalAllocated ? (totalSpent / totalAllocated) * 100 : 0;
-
   const upsertBudget = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -111,7 +106,7 @@ const BudgetView = () => {
     setEditId(b.id);
     setForm({
       title: b.title || "", category_id: b.category_id || "", event_id: b.event_id || "",
-      department: b.department || "", allocated_amount: String(b.allocated_amount || ""),
+      campaign_id: "", department: b.department || "", allocated_amount: String(b.allocated_amount || ""),
       expected_cost: String(b.expected_cost || ""), funding_source: b.funding_source || "",
       budget_owner: b.budget_owner || "", priority: b.priority || "medium",
       description: b.description || "", remarks: b.remarks || "", approval_required: b.approval_required ?? true,
@@ -138,60 +133,52 @@ const BudgetView = () => {
         )}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-xl p-5 bg-gradient-to-br from-blue-600 to-cyan-500 text-white">
-          <p className="text-sm text-slate-100">Total Budget</p>
-          <p className="text-2xl font-bold mt-1">{fmt(totalAllocated)}</p>
-        </div>
-        <div className="rounded-xl p-5 bg-gradient-to-br from-orange-500 to-rose-600 text-white">
-          <p className="text-sm text-slate-100">Consumed</p>
-          <p className="text-2xl font-bold mt-1">{fmt(totalSpent)}</p>
-          <p className="text-xs text-slate-100 mt-1">{usagePct.toFixed(1)}% used</p>
-        </div>
-        <div className="rounded-xl p-5 bg-gradient-to-br from-emerald-600 to-yellow-500 text-white">
-          <p className="text-sm text-slate-100">Remaining</p>
-          <p className="text-2xl font-bold mt-1">{fmt(totalRemaining)}</p>
-        </div>
-      </div>
-
-      {/* Budget Cards */}
       {budgets.length === 0 ? (
         <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
           <Wallet className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="font-medium">No budgets yet</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {budgets.map((b: any) => {
             const pct = b.allocated_amount ? (Number(b.spent_amount) / Number(b.allocated_amount)) * 100 : 0;
+            const remaining = Number(b.allocated_amount) - Number(b.spent_amount);
             return (
-              <div key={b.id} className="rounded-xl border bg-card p-4 space-y-2 relative group hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">{b.title}</p>
-                  <div className="flex items-center gap-2">
-                    <Badge className={statusColor[b.status]}>{b.status}</Badge>
-                    {isManager && (
-                      <div className="flex gap-1">
-                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        {isAdmin && (
-                          <button onClick={() => { if (confirm("Delete this budget?")) deleteBudget.mutate(b.id); }} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
+              <div key={b.id} className="rounded-xl border bg-card p-4 space-y-2 relative group">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm truncate">{b.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{b.budget_categories?.name || "Uncategorized"}</p>
+                  </div>
+                  <Badge className={`${statusColor[b.status] || ""} text-[10px] px-1.5 py-0`}>{b.status}</Badge>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Allocated</span>
+                  <span className="font-medium">{fmt(Number(b.allocated_amount))}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Spent</span>
+                  <span className="font-medium">{fmt(Number(b.spent_amount))}</span>
+                </div>
+                <Progress value={pct} className="h-1.5" />
+                <div className="flex justify-between text-[10px]">
+                  <span className={remaining < 0 ? "text-red-500 font-medium" : "text-muted-foreground"}>
+                    {remaining < 0 ? "Overspent" : "Remaining"}: {fmt(remaining)}
+                  </span>
+                  <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
+                </div>
+                {b.budget_owner && <p className="text-[10px] text-muted-foreground">Owner: {b.budget_owner}</p>}
+                {isManager && (
+                  <div className="absolute top-2 right-2 hidden group-hover:flex gap-1">
+                    <button onClick={() => openEdit(b)} className="p-1 rounded-md bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-sm">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    {isAdmin && (
+                      <button onClick={() => { if (confirm("Delete this budget?")) deleteBudget.mutate(b.id); }} className="p-1 rounded-md bg-background/80 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shadow-sm">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     )}
                   </div>
-                </div>
-                <Progress value={pct} className="h-2" />
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Spent {fmt(b.spent_amount)}</span>
-                  <span>Budget {fmt(b.allocated_amount)}</span>
-                </div>
-                {isManager && b.budget_owner && (
-                  <p className="text-xs text-muted-foreground">Owner: {b.budget_owner}</p>
                 )}
               </div>
             );
@@ -199,7 +186,6 @@ const BudgetView = () => {
         </div>
       )}
 
-      {/* Budget Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) { setEditId(null); setForm(initialForm); } setDialogOpen(v); }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editId ? "Edit Budget" : "Allocate Budget"}</DialogTitle></DialogHeader>
