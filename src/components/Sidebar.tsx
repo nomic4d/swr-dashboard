@@ -30,10 +30,13 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const isManager = role === "manager" || role === "admin";
   const navItems = allNavItems.filter((item) => (item.id !== "staff" && item.id !== "budget") || isManager);
   return (
-    <aside className="w-56 bg-sidebar min-h-screen flex flex-col">
-      <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
+    <aside className="w-56 min-h-screen flex flex-col relative overflow-hidden">
+      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('https://images.pexels.com/photos/33801846/pexels-photo-33801846.jpeg')" }} />
+      <div className="absolute inset-0 backdrop-blur-md bg-black/30" />
+      <div className="relative z-10 flex flex-col h-full">
+      <div className="p-4 border-b border-white/10 flex items-center justify-between">
         <div className="pb-3">
-          <img src={swrLogo} alt="SWR" className="h-10 w-auto" />
+          <img src={swrLogo} alt="SWR" className="h-10 w-auto brightness-0 invert" />
         </div>
         <NotificationBell />
       </div>
@@ -66,8 +69,9 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           </Link>
         )}
       </nav>
-      <div className="p-4 border-t border-sidebar-border">
-        <p className="text-xs text-sidebar-foreground/40 text-center">SWR Calendar 2026</p>
+      <div className="p-4 border-t border-white/10">
+        <p className="text-xs text-white/40 text-center">SWR Calendar 2026</p>
+      </div>
       </div>
     </aside>
   );
