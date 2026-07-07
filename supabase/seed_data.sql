@@ -60,16 +60,16 @@ DECLARE
   profile_id UUID;
   event_rec RECORD;
   pexels_images TEXT[] := ARRAY[
-    'https://images.pexels.com/photos/699122/pexels-photo-699122.jpeg',
-    'https://images.pexels.com/photos/1486975/pexels-photo-1486975.jpeg',
-    'https://images.pexels.com/photos/255379/pexels-photo-255379.jpeg',
-    'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg',
-    'https://images.pexels.com/photos/164501/pexels-photo-164501.jpeg',
-    'https://images.pexels.com/photos/1110891/pexels-photo-1110891.jpeg',
-    'https://images.pexels.com/photos/112460/pexels-photo-112460.jpeg',
-    'https://images.pexels.com/photos/429121/pexels-photo-429121.jpeg',
-    'https://images.pexels.com/photos/1366916/pexels-photo-1366916.jpeg',
-    'https://images.pexels.com/photos/2726370/pexels-photo-2726370.jpeg'
+    'https://picsum.photos/seed/event1/800/600',
+    'https://picsum.photos/seed/event2/800/600',
+    'https://picsum.photos/seed/event3/800/600',
+    'https://picsum.photos/seed/event4/800/600',
+    'https://picsum.photos/seed/event5/800/600',
+    'https://picsum.photos/seed/event6/800/600',
+    'https://picsum.photos/seed/event7/800/600',
+    'https://picsum.photos/seed/event8/800/600',
+    'https://picsum.photos/seed/event9/800/600',
+    'https://picsum.photos/seed/event10/800/600'
   ];
   captions TEXT[] := ARRAY[
     'Team enjoying the event',

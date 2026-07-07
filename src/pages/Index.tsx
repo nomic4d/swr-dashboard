@@ -44,8 +44,8 @@ const Index = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 p-6 lg:p-8 overflow-auto">
-        <div className="mb-4 flex justify-end">
+      <main className="flex-1 p-3 lg:p-4 overflow-auto">
+        <div className="mb-2 flex justify-end">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

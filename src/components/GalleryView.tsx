@@ -33,6 +33,7 @@ const GalleryView = () => {
       if (error) throw error;
       return (data ?? []).filter((e: any) => e.title !== "Available" && e.title !== "Meeting");
     },
+    staleTime: 120000,
   });
 
   const { data: media = [], error: mediaError, isLoading } = useQuery({
@@ -42,6 +43,7 @@ const GalleryView = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 120000,
   });
 
   const { data: profiles = [] } = useQuery({

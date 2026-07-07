@@ -211,14 +211,13 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <aside className="w-64 gradient-navy min-h-screen flex flex-col shrink-0">
-        <div className="p-6 border-b border-sidebar-border">
-          <h1 className="text-xl font-bold text-sidebar-foreground tracking-tight">
+      <aside className="w-56 bg-sidebar min-h-screen flex flex-col shrink-0">
+        <div className="p-4 border-b border-sidebar-border">
+          <h1 className="text-lg font-bold text-sidebar-foreground tracking-tight">
             SWR <span className="text-gradient">Admin</span>
           </h1>
-          <p className="text-xs text-sidebar-foreground/60 mt-1">Full system control</p>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-3 space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -226,7 +225,7 @@ const Admin = () => {
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all",
                   activeTab === item.id
                     ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -245,8 +244,8 @@ const Admin = () => {
         </div>
       </aside>
 
-      <main className="flex-1 p-6 lg:p-8 overflow-auto">
-        <div className="mx-auto max-w-7xl space-y-6 animate-fade-in">
+      <main className="flex-1 p-3 lg:p-4 overflow-auto">
+        <div className="mx-auto max-w-7xl space-y-3 animate-fade-in">
           {activeTab === "dashboard" && (
             <>
               <div className="flex items-center justify-between">
