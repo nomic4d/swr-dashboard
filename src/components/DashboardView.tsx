@@ -6,7 +6,7 @@ import { format, isFuture } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
-import { eventTheme } from "./CalendarView";
+import { eventTheme, restrictedKeywords } from "./CalendarView";
 
 const DashboardView = () => {
   const { user } = useAuth();
@@ -15,7 +15,7 @@ const DashboardView = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("events").select("*").order("event_number");
       if (error) throw error;
-      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !t.includes("available") && !t.includes("meeting"); });
+      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); });
     },
   });
 

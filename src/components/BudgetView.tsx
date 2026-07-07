@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Wallet, Plus, Pencil, Trash2, Building2, Tag, Layers, TrendingUp, DollarSign } from "lucide-react";
-import { eventTheme } from "./CalendarView";
+import { eventTheme, restrictedKeywords } from "./CalendarView";
 
 const fmt = (n: number) => `PKR ${n.toLocaleString()}`;
 const statusColor: Record<string, string> = {
@@ -105,7 +105,7 @@ const BudgetView = () => {
     const [description, setDescription] = useState(selectedBudget?.description ?? "");
     const [remarks, setRemarks] = useState(selectedBudget?.remarks ?? "");
 
-    const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: async () => { const { data } = await supabase.from("events").select("id,title,event_number").order("event_number"); return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !t.includes("available") && !t.includes("meeting"); }); } });
+    const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: async () => { const { data } = await supabase.from("events").select("id,title,event_number").order("event_number"); return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); }); } });
 
     const handleSubmit = () => {
       if (!title || !allocatedAmount) { toast.error("Title and amount are required"); return; }

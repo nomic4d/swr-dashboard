@@ -13,7 +13,7 @@ import AlbumCreateDialog from "./AlbumCreateDialog";
 import GalleryUploadDialog from "./GalleryUploadDialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PlyrVideo from "./PlyrVideo";
-import { eventTheme } from "./CalendarView";
+import { eventTheme, restrictedKeywords } from "./CalendarView";
 
 const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) => {
   const queryClient = useQueryClient();
@@ -55,7 +55,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
     queryFn: async () => {
       const { data, error } = await supabase.from("events").select("*").order("event_number");
       if (error) throw error;
-      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !t.includes("available") && !t.includes("meeting"); });
+      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); });
     },
     staleTime: 120000,
   });

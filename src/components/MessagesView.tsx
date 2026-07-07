@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Plus, Send, Clock, CheckCircle, XCircle, MessageCircle, Phone } from "lucide-react";
 import { format } from "date-fns";
+import { restrictedKeywords } from "./CalendarView";
 
 const statusIcons: Record<string, typeof Clock> = { pending: Clock, sent: CheckCircle, failed: XCircle };
 const statusColors: Record<string, string> = { pending: "text-warning", sent: "text-success", failed: "text-destructive" };
@@ -34,7 +35,7 @@ const MessagesView = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("events").select("*").order("event_number");
       if (error) throw error;
-      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !t.includes("available") && !t.includes("meeting"); });
+      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); });
     },
   });
 

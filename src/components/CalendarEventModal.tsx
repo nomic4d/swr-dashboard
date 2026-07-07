@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { CalendarDays, MapPin, Users, Info, Share2, Download, Mail, PencilLine, Phone, UserRound, Clock3, BedDouble } from "lucide-react";
+import { restrictedKeywords } from "./CalendarView";
 
 interface CalendarEventModalProps {
   event: any;
@@ -19,7 +20,6 @@ interface CalendarEventModalProps {
   onCancelEdit: () => void;
 }
 
-const restrictedTitles = ["available", "meeting"];
 const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, form, onFormChange, onSave, onStartEdit, onCancelEdit }: CalendarEventModalProps) => {
   if (!event) return null;
 
@@ -36,8 +36,8 @@ const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, f
                 <div>
                   <label className="mb-1 block text-sm font-medium">Event title</label>
                   <Input value={form.title || ""} onChange={(e) => onFormChange({ ...form, title: e.target.value })} placeholder="Event title" />
-                  {restrictedTitles.includes((form.title || "").trim().toLowerCase()) && (
-                    <p className="text-[11px] text-destructive">"Available" and "Meeting" are restricted titles</p>
+                  {restrictedKeywords.some((k) => (form.title || "").trim().toLowerCase().includes(k)) && (
+                    <p className="text-[11px] text-destructive">This title is restricted</p>
                   )}
                 </div>
                 <div>
@@ -90,7 +90,7 @@ const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, f
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <Button variant="outline" onClick={onCancelEdit}>Cancel</Button>
-              <Button className="gap-2" onClick={onSave} disabled={restrictedTitles.includes((form.title || "").trim().toLowerCase())}><PencilLine className="h-4 w-4" /> Update Event</Button>
+              <Button className="gap-2" onClick={onSave} disabled={restrictedKeywords.some((k) => (form.title || "").trim().toLowerCase().includes(k))}><PencilLine className="h-4 w-4" /> Update Event</Button>
             </div>
           </div>
         ) : (

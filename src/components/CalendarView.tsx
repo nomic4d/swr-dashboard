@@ -45,6 +45,8 @@ const fallbackEvents = [
   { id: "fb-10", title: "Soup Day / Movie Night", event_date: "2026-12-12", month: "December", event_number: 10, location: "Islamabad", description: null, created_at: "", updated_at: "" },
 ];
 
+export const restrictedKeywords = ["available", "meeting", "traveling", "vew"];
+
 export const eventTheme: Record<number, { icon: typeof Citrus; gradient: string; ring: string }> = {
   1: { icon: Citrus, gradient: "from-orange-400 to-orange-600", ring: "ring-orange-400/40" },
   2: { icon: Moon, gradient: "from-emerald-400 to-emerald-600", ring: "ring-emerald-400/40" },
@@ -87,7 +89,7 @@ const CalendarView = () => {
     queryFn: async ({ signal }) => {
       const { data, error } = await supabase.from("events").select("*").order("event_number").abortSignal(signal);
       if (error || !data?.length) return fallbackEvents;
-      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !t.includes("available") && !t.includes("meeting"); });
+      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); });
     },
     initialData: fallbackEvents,
     retry: 2,
@@ -236,11 +238,10 @@ const CalendarView = () => {
     setIsDetailsOpen(true);
   };
 
-  const restrictedTitles = ["available", "meeting"];
   const handleCreateEvent = async () => {
     if (!form.title || !form.event_date) return;
     const titleLower = form.title.trim().toLowerCase();
-    if (restrictedTitles.includes(titleLower)) {
+    if (restrictedKeywords.some((k) => titleLower.includes(k))) {
       toast.error(`"${form.title}" is a restricted title and cannot be used`);
       return;
     }
@@ -311,14 +312,14 @@ const CalendarView = () => {
                   <DialogHeader><DialogTitle>Create event</DialogTitle></DialogHeader>
                   <div className="space-y-2">
                     <Input placeholder="Event name" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                    {restrictedTitles.includes(form.title.trim().toLowerCase()) && (
-                      <p className="text-[11px] text-destructive">"Available" and "Meeting" are restricted titles</p>
+                    {restrictedKeywords.some((k) => form.title.trim().toLowerCase().includes(k)) && (
+                      <p className="text-[11px] text-destructive">This title is restricted</p>
                     )}
                     <Input placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
                     <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                     <Input placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
                     <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
-                    <Button size="sm" className="w-full" onClick={handleCreateEvent} disabled={restrictedTitles.includes(form.title.trim().toLowerCase())}>Save event</Button>
+                    <Button size="sm" className="w-full" onClick={handleCreateEvent} disabled={restrictedKeywords.some((k) => form.title.trim().toLowerCase().includes(k))}>Save event</Button>
                   </div>
                 </DialogContent>
             </Dialog>
