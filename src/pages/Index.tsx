@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getPortalRole } from "@/pages/portalUtils";
-import { LogOut, User, UserCircle, ArrowLeft } from "lucide-react";
+import { LogOut, User, UserCircle, ArrowLeft, Menu, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -29,6 +29,7 @@ import {
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [galleryHeader, setGalleryHeader] = useState<any>(null);
+  const [mobileMenu, setMobileMenu] = useState(false);
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const role = getPortalRole(user?.email, (user as any)?.user_metadata?.role);
@@ -45,12 +46,30 @@ const Index = () => {
     enabled: !!user?.email,
   });
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setMobileMenu(false);
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="flex-1 pl-6 pr-6 pt-2 p-1.5 lg:pl-8 lg:pr-8 lg:pt-2 lg:p-2 overflow-auto">
+      <div className="hidden lg:block">
+        <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+      </div>
+      {mobileMenu && (
+        <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMobileMenu(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-1/2 max-w-xs h-full" onClick={(e) => e.stopPropagation()}>
+            <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+          </div>
+        </div>
+      )}
+      <main className="flex-1 min-w-0 pl-6 pr-6 pt-2 p-1.5 lg:pl-8 lg:pr-8 lg:pt-2 lg:p-2 overflow-auto">
         <div className="flex items-center justify-between gap-1 min-h-[38px] rounded-lg bg-primary/10 px-2 mb-2">
           <div className="flex items-center gap-1.5 min-w-0 shrink-0">
+            <button className="lg:hidden p-1 mr-1 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setMobileMenu(!mobileMenu)}>
+              {mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
             {activeTab === "gallery" && galleryHeader && galleryHeader.activeAlbum ? (
               <>
                 <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 shrink-0 text-xs" onClick={() => { galleryHeader.onBack(); }}>
