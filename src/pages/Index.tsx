@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import DashboardView from "@/components/DashboardView";
 import CalendarView from "@/components/CalendarView";
@@ -18,6 +18,13 @@ import { LogOut, User, UserCircle, ArrowLeft, Menu, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -30,11 +37,25 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [galleryHeader, setGalleryHeader] = useState<any>(null);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [showPasswordReminder, setShowPasswordReminder] = useState(false);
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const role = getPortalRole(user?.email, (user as any)?.user_metadata?.role);
   const initials = (user?.email || "U").split("@")[0].slice(0, 2).toUpperCase();
   const pageTitles: Record<string, string> = { dashboard: "Dashboard", calendar: "Calendar", staff: "Staff", gallery: "Gallery", contributors: "Contributors", budget: "Budget", profile: "Profile", messages: "Messages" };
+
+  useEffect(() => {
+    if (user && !localStorage.getItem("pw-reminder-dismissed")) {
+      setShowPasswordReminder(true);
+    }
+  }, [user]);
+
+  const dismissReminder = (dontRemindAgain: boolean) => {
+    setShowPasswordReminder(false);
+    if (dontRemindAgain) {
+      localStorage.setItem("pw-reminder-dismissed", "1");
+    }
+  };
 
   const { data: profile } = useQuery({
     queryKey: ["my-profile", user?.email],
@@ -135,6 +156,23 @@ const Index = () => {
         {activeTab === "profile" && <ProfileView />}
         {activeTab === "messages" && <MessagesView />}
       </main>
+      <Dialog open={showPasswordReminder} onOpenChange={(open) => { if (!open) dismissReminder(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Your Password</DialogTitle>
+            <DialogDescription>
+              Please update your password by navigating to the top right of your profile and choosing your own password.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <input type="checkbox" className="rounded" onClick={(e) => {
+              const checked = (e.target as HTMLInputElement).checked;
+              dismissReminder(checked);
+            }} />
+            I already updated my password &mdash; don't remind me again
+          </label>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
