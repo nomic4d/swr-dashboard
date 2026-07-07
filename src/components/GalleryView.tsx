@@ -479,14 +479,14 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
 
       {/* Instagram-style Lightbox */}
       <Dialog open={lightboxIndex !== null} onOpenChange={(o) => !o && closeLightbox()}>
-        <DialogContent className="max-w-5xl p-0 border-0 rounded-[15px] overflow-hidden bg-black/20 backdrop-blur-xl">
+        <DialogContent className="max-w-5xl p-0 border-0 rounded-[15px] overflow-hidden bg-black/90 backdrop-blur-sm">
           <DialogHeader className="sr-only"><DialogTitle>Preview</DialogTitle></DialogHeader>
           {currentItem && (
             <div className="flex flex-col md:flex-row max-h-[80vh]">
               {/* Left: Photo/Video */}
               <div className="relative flex-1 flex items-center justify-center min-h-[40vh] md:min-h-[70vh] overflow-hidden">
-                <div className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-xl scale-110 opacity-60" style={{ backgroundImage: `url(${currentItem.media_type === "video" ? (currentItem.thumbnail_url || currentItem.media_url) : currentItem.media_url})` }} />
-                <div className="absolute inset-0 bg-black/20" />
+                <div className="absolute inset-0 bg-cover bg-center bg-no-repeat blur-lg scale-105" style={{ backgroundImage: `url(${currentItem.media_type === "video" ? (currentItem.thumbnail_url || currentItem.media_url) : currentItem.media_url})` }} />
+                <div className="absolute inset-0 bg-black/80" />
                 <button onClick={closeLightbox} className="absolute top-3 right-3 z-20 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"><X className="h-5 w-5" /></button>
                 {user?.id === currentItem.uploader_id && (
                   <button onClick={() => { closeLightbox(); deleteMedia.mutate(currentItem.id); }} className="absolute top-3 left-3 z-20 p-2 rounded-full bg-black/40 hover:bg-red-600 text-white backdrop-blur-sm"><Trash2 className="h-4 w-4" /></button>
