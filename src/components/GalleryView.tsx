@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import EmojiPicker from "emoji-picker-react";
+import { animatedEmojis } from "@/data/animatedEmojis";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
-import { Image as ImageIcon, Video, Trash2, Folder, ChevronLeft, ChevronRight, X, Search, User, Camera, Loader2, LayoutGrid, ScrollText, Play, Heart, MessageCircle, Send, HeartOff, Settings, Minimize2, Move, ZoomIn, Repeat, Smile } from "lucide-react";
+import { Image as ImageIcon, Video, Trash2, Folder, ChevronLeft, ChevronRight, X, Search, User, Camera, Loader2, LayoutGrid, ScrollText, Play, Heart, MessageCircle, Send, HeartOff, Settings, Minimize2, Move, ZoomIn, Repeat, Smile, ThumbsUp } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getPortalRole } from "@/pages/portalUtils";
@@ -102,7 +102,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
     } : null);
   }, [activeAlbum, albumMedia.length, filteredMedia.length, mediaFilter, canUpload, user?.id, uploaderProfile?.full_name, uploaderProfile?.avatar_url, transitionType]);
 
-  const mediaIds = albumMedia.map((m: any) => m.id);
+  const mediaIds = useMemo(() => albumMedia.map((m: any) => m.id), [albumMedia]);
 
   const { data: likes = [] } = useQuery({
     queryKey: ["media_likes", ...mediaIds],
@@ -122,6 +122,20 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
       return data ?? [];
     },
     enabled: mediaIds.length > 0,
+    staleTime: 30000,
+  });
+
+  const commentIds = useMemo(() => allComments.map((c: any) => c.id), [allComments]);
+
+  const { data: allCommentReactions = [] } = useQuery({
+    queryKey: ["comment_reactions", ...commentIds],
+    queryFn: async () => {
+      if (commentIds.length === 0) return [];
+      const { data } = await supabase.from("comment_reactions").select("*").in("comment_id", commentIds);
+      return data ?? [];
+    },
+    enabled: commentIds.length > 0,
+    staleTime: 30000,
   });
 
   const deleteMedia = useMutation({
@@ -159,10 +173,15 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
   const addComment = useMutation({
     mutationFn: async ({ mediaId, content }: { mediaId: string; content: string }) => {
       if (!user) throw new Error("Not logged in");
-      const { error } = await supabase.from("media_comments").insert({ media_id: mediaId, user_id: user.id, user_email: user.email, content });
+      const { data, error } = await supabase.from("media_comments").insert({
+        media_id: mediaId, user_id: user.id, user_email: user.email, content
+      }).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["media_comments"] }); },
+    onSuccess: (newComment) => {
+      queryClient.setQueryData(["media_comments", ...mediaIds], (old: any[]) => [...(old || []), newComment]);
+    },
   });
 
   const deleteComment = useMutation({
@@ -170,7 +189,27 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
       const { error } = await supabase.from("media_comments").delete().eq("id", commentId);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["media_comments"] }); toast.success("Comment deleted"); },
+    onSuccess: (_data, commentId) => {
+      queryClient.setQueryData(["media_comments", ...mediaIds], (old: any[]) => (old || []).filter((c: any) => c.id !== commentId));
+      toast.success("Comment deleted");
+    },
+  });
+
+  const toggleCommentReaction = useMutation({
+    mutationFn: async (commentId: string) => {
+      if (!user) throw new Error("Not logged in");
+      const existing = allCommentReactions.find((r: any) => r.comment_id === commentId && r.user_id === user.id);
+      if (existing) {
+        const { error } = await supabase.from("comment_reactions").delete().eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("comment_reactions").insert({
+          comment_id: commentId, user_id: user.id, reaction: "like"
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["comment_reactions"] }); },
   });
 
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
@@ -192,6 +231,10 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
   const currentLikes = currentItem ? likes.filter((l: any) => l.media_id === currentItem.id) : [];
   const currentComments = currentItem ? allComments.filter((c: any) => c.media_id === currentItem.id) : [];
   const userLiked = currentItem ? currentLikes.some((l: any) => l.user_id === user?.id) : false;
+  const currentCommentIds = useMemo(() => currentComments.map((c: any) => c.id), [currentComments]);
+  const currentCommentReactions = currentCommentIds.length > 0
+    ? allCommentReactions.filter((r: any) => currentCommentIds.includes(r.comment_id))
+    : [];
 
   return (
     <div className="space-y-2 animate-fade-in">
@@ -498,10 +541,19 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                             <span className="font-semibold">{profileByEmail[c.user_email]?.full_name || "Unknown"}</span>{" "}
                             <span className="text-muted-foreground">{c.content}</span>
                           </p>
-                          <p className="text-[9px] text-muted-foreground mt-0.5">
+                          <p className="text-[9px] text-muted-foreground mt-0.5 flex items-center gap-2">
                             {new Date(c.created_at).toLocaleDateString()}
+                            <button onClick={() => toggleCommentReaction.mutate(c.id)}
+                              className={`inline-flex items-center gap-0.5 hover:scale-110 transition-transform ${
+                                allCommentReactions.some((r: any) => r.comment_id === c.id && r.user_id === user?.id)
+                                  ? "text-red-500" : "text-muted-foreground/50 hover:text-red-400"
+                              }`}
+                            >
+                              <Heart className={`h-3 w-3 ${allCommentReactions.some((r: any) => r.comment_id === c.id && r.user_id === user?.id) ? "fill-current" : ""}`} />
+                              <span>{allCommentReactions.filter((r: any) => r.comment_id === c.id).length}</span>
+                            </button>
                             {user?.id === c.user_id && (
-                              <button onClick={() => deleteComment.mutate(c.id)} className="ml-2 text-destructive hover:underline">Delete</button>
+                              <button onClick={() => deleteComment.mutate(c.id)} className="ml-1 text-destructive/60 hover:text-destructive">Delete</button>
                             )}
                           </p>
                         </div>
@@ -550,8 +602,17 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                       <PopoverTrigger asChild>
                         <button className="text-muted-foreground hover:text-foreground transition-colors"><Smile className="h-4 w-4" /></button>
                       </PopoverTrigger>
-                      <PopoverContent side="top" align="end" className="w-full max-w-[320px] p-0 border-none">
-                        <EmojiPicker lazyLoad onEmojiClick={(emoji) => setCommentInputs((prev) => ({ ...prev, [currentItem.id]: (prev[currentItem.id] || "") + emoji.emoji }))} />
+                      <PopoverContent side="top" align="end" className="w-[280px] p-2 border-border/50">
+                        <div className="grid grid-cols-6 gap-1 max-h-[200px] overflow-y-auto">
+                          {animatedEmojis.map((ae) => (
+                            <button key={ae.name} onClick={() => setCommentInputs((prev) => ({ ...prev, [currentItem.id]: (prev[currentItem.id] || "") + ae.emoji }))}
+                              className="p-1 rounded-md hover:bg-muted transition-colors flex items-center justify-center"
+                              title={ae.name}
+                            >
+                              <img src={ae.url} alt={ae.name} className="h-7 w-7 object-contain" loading="lazy" />
+                            </button>
+                          ))}
+                        </div>
                       </PopoverContent>
                     </Popover>
                     <button disabled={!(commentInputs[currentItem.id] || "").trim()} onClick={() => {
