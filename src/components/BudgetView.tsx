@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,11 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Wallet, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Wallet, Plus, Pencil, Trash2, Building2, Tag, Layers, TrendingUp, DollarSign } from "lucide-react";
+import { eventTheme } from "./CalendarView";
 
 const fmt = (n: number) => `PKR ${n.toLocaleString()}`;
 const statusColor: Record<string, string> = {
@@ -25,12 +25,6 @@ const statusColor: Record<string, string> = {
   archived: "bg-red-100 text-red-700 border-red-200",
 };
 
-const initialForm = {
-  title: "", category_id: "", event_id: "", campaign_id: "", department: "",
-  allocated_amount: "", expected_cost: "", funding_source: "", budget_owner: "",
-  priority: "medium", description: "", remarks: "", approval_required: true,
-};
-
 const BudgetView = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -38,15 +32,16 @@ const BudgetView = () => {
   const isManager = role === "manager" || role === "admin";
   const isAdmin = role === "admin";
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState(initialForm);
-  const [statusVal, setStatusVal] = useState("draft");
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<any>(null);
 
   const { data: budgets = [] } = useQuery({
     queryKey: ["budgets"],
     queryFn: async () => {
-      const { data } = await supabase.from("budgets").select("*, budget_categories(name)").order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("budgets")
+        .select("*, budget_categories(name), events(title, event_number)")
+        .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
@@ -59,39 +54,34 @@ const BudgetView = () => {
     },
   });
 
-  const { data: events = [] } = useQuery({
-    queryKey: ["events"],
-    queryFn: async () => {
-      const { data } = await supabase.from("events").select("id, title").order("event_number");
-      return data ?? [];
+  const totalAllocated = budgets.reduce((s: number, b: any) => s + Number(b.allocated_amount), 0);
+  const totalSpent = budgets.reduce((s: number, b: any) => s + Number(b.spent_amount), 0);
+  const totalRemaining = totalAllocated - totalSpent;
+  const usagePct = totalAllocated ? (totalSpent / totalAllocated) * 100 : 0;
+
+  const statusGroups = ["pending", "approved", "draft", "frozen", "closed", "archived"];
+  const grouped = statusGroups.reduce((acc: Record<string, any[]>, s) => {
+    const items = budgets.filter((b: any) => b.status === s);
+    if (items.length) acc[s] = items;
+    return acc;
+  }, {});
+
+  const createBudget = useMutation({
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from("budgets").insert({ ...data, created_by: user?.email });
+      if (error) throw error;
     },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["budgets"] }); toast.success("Budget created"); setBudgetOpen(false); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const upsertBudget = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        title: form.title, category_id: form.category_id || null,
-        event_id: form.event_id || null, department: form.department || null,
-        allocated_amount: Number(form.allocated_amount) || 0,
-        expected_cost: Number(form.expected_cost) || 0,
-        funding_source: form.funding_source || null,
-        budget_owner: form.budget_owner || null,
-        priority: form.priority, description: form.description || null,
-        remarks: form.remarks || null, approval_required: form.approval_required,
-      } as any;
-      if (editId) {
-        payload.status = statusVal;
-        const { error } = await supabase.from("budgets").update(payload).eq("id", editId);
-        if (error) throw error;
-        toast.success("Budget updated");
-      } else {
-        const { error } = await supabase.from("budgets").insert(payload);
-        if (error) throw error;
-        toast.success("Budget created");
-      }
+  const updateBudget = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      const { error } = await supabase.from("budgets").update(data).eq("id", id);
+      if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["budgets"] }); setDialogOpen(false); setEditId(null); setForm(initialForm); },
-    onError: (e: any) => toast.error(e.message),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["budgets"] }); toast.success("Budget updated"); setBudgetOpen(false); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteBudget = useMutation({
@@ -99,126 +89,258 @@ const BudgetView = () => {
       const { error } = await supabase.from("budgets").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["budgets"] }); toast.success("Deleted"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["budgets"] }); toast.success("Budget deleted"); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const openEdit = (b: any) => {
-    setEditId(b.id);
-    setForm({
-      title: b.title || "", category_id: b.category_id || "", event_id: b.event_id || "",
-      campaign_id: "", department: b.department || "", allocated_amount: String(b.allocated_amount || ""),
-      expected_cost: String(b.expected_cost || ""), funding_source: b.funding_source || "",
-      budget_owner: b.budget_owner || "", priority: b.priority || "medium",
-      description: b.description || "", remarks: b.remarks || "", approval_required: b.approval_required ?? true,
-    });
-    setStatusVal(b.status || "draft");
-    setDialogOpen(true);
-  };
+  const BudgetDialog = () => {
+    const [title, setTitle] = useState(selectedBudget?.title ?? "");
+    const [categoryId, setCategoryId] = useState(selectedBudget?.category_id ?? "");
+    const [eventId, setEventId] = useState(selectedBudget?.event_id ?? "");
+    const [department, setDepartment] = useState(selectedBudget?.department ?? "");
+    const [allocatedAmount, setAllocatedAmount] = useState(selectedBudget?.allocated_amount ?? "");
+    const [expectedCost, setExpectedCost] = useState(selectedBudget?.expected_cost ?? "");
+    const [priority, setPriority] = useState(selectedBudget?.priority ?? "medium");
+    const [fundingSource, setFundingSource] = useState(selectedBudget?.funding_source ?? "");
+    const [description, setDescription] = useState(selectedBudget?.description ?? "");
+    const [remarks, setRemarks] = useState(selectedBudget?.remarks ?? "");
 
-  const openCreate = () => {
-    setEditId(null); setForm(initialForm); setStatusVal("draft"); setDialogOpen(true);
+    const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: async () => { const { data } = await supabase.from("events").select("id,title,event_number").order("event_number"); return data ?? []; } });
+
+    const handleSubmit = () => {
+      if (!title || !allocatedAmount) { toast.error("Title and amount are required"); return; }
+      const payload = {
+        title, category_id: categoryId || null, event_id: eventId || null,
+        department: department || null,
+        allocated_amount: Number(allocatedAmount), expected_cost: Number(expectedCost) || 0,
+        priority, funding_source: fundingSource || null, description: description || null,
+        remarks: remarks || null, status: "pending",
+      };
+      if (selectedBudget) {
+        updateBudget.mutate({ id: selectedBudget.id, ...payload });
+      } else {
+        createBudget.mutate(payload);
+      }
+    };
+
+    return (
+      <Dialog open={budgetOpen} onOpenChange={setBudgetOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedBudget ? "Edit Budget" : "Allocate Budget"}</DialogTitle>
+            <DialogDescription>{selectedBudget ? "Update budget details" : "Create a new budget allocation"}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5 col-span-2">
+                <Label>Budget Title</Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Orange Fest Budget" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Category</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {(categories ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Department</Label>
+                <Input value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Events" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Event (optional)</Label>
+                <Select value={eventId} onValueChange={setEventId}>
+                  <SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger>
+                  <SelectContent>
+                    {events.map((e: any) => <SelectItem key={e.id} value={e.id}>#{e.event_number} {e.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Allocated Amount (PKR)</Label>
+                <Input type="number" value={allocatedAmount} onChange={(e) => setAllocatedAmount(e.target.value)} placeholder="80000" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Expected Cost (PKR)</Label>
+                <Input type="number" value={expectedCost} onChange={(e) => setExpectedCost(e.target.value)} placeholder="75000" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Priority</Label>
+                <Select value={priority} onValueChange={setPriority}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Funding Source</Label>
+                <Input value={fundingSource} onChange={(e) => setFundingSource(e.target.value)} placeholder="e.g. Annual Budget" />
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label>Description</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label>Remarks</Label>
+                <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={2} />
+              </div>
+            </div>
+            <Button onClick={handleSubmit} className="w-full" disabled={createBudget.isPending || updateBudget.isPending}>
+              {selectedBudget ? "Update Budget" : "Create Budget"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   return (
-    <div className="space-y-3 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-foreground">Budgets</h2>
-          <p className="text-sm text-muted-foreground">{budgets.length} budgets</p>
+          <p className="text-sm text-muted-foreground">{budgets.length} budget{budgets.length !== 1 ? "s" : ""}</p>
         </div>
         {isManager && (
-          <Button size="sm" className="gap-1" onClick={openCreate}>
+          <Button size="sm" onClick={() => { setSelectedBudget(null); setBudgetOpen(true); }} className="gap-2">
             <Plus className="h-4 w-4" /> Allocate Budget
           </Button>
         )}
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="glass-card rounded-xl p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shrink-0">
+              <DollarSign className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Total Budget</p>
+              <p className="text-lg font-bold">{fmt(totalAllocated)}</p>
+            </div>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all" style={{ width: "100%" }} />
+          </div>
+        </div>
+        <div className="glass-card rounded-xl p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shrink-0">
+              <TrendingUp className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Consumed</p>
+              <p className="text-lg font-bold">{fmt(totalSpent)}</p>
+            </div>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-rose-500 transition-all" style={{ width: `${Math.min(usagePct, 100)}%` }} />
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">{usagePct.toFixed(1)}% of budget used</p>
+        </div>
+        <div className="glass-card rounded-xl p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-yellow-500 flex items-center justify-center shrink-0">
+              <Wallet className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Remaining</p>
+              <p className="text-lg font-bold">{fmt(totalRemaining)}</p>
+            </div>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-yellow-400 transition-all" style={{ width: `${totalAllocated ? (totalRemaining / totalAllocated) * 100 : 0}%` }} />
+          </div>
+        </div>
+      </div>
+
       {budgets.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
-          <Wallet className="h-10 w-10 mx-auto mb-3 opacity-40" />
+        <div className="glass-card rounded-xl p-12 text-center text-muted-foreground">
+          <Wallet className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No budgets yet</p>
+          <p className="text-sm mt-1">Click "Allocate Budget" to create the first one</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {budgets.map((b: any) => {
-            const pct = b.allocated_amount ? (Number(b.spent_amount) / Number(b.allocated_amount)) * 100 : 0;
-            const remaining = Number(b.allocated_amount) - Number(b.spent_amount);
-            return (
-              <div key={b.id} className="rounded-xl border bg-card p-4 space-y-2 relative group">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm truncate">{b.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{b.budget_categories?.name || "Uncategorized"}</p>
-                  </div>
-                  <Badge className={`${statusColor[b.status] || ""} text-[10px] px-1.5 py-0`}>{b.status}</Badge>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Allocated</span>
-                  <span className="font-medium">{fmt(Number(b.allocated_amount))}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Spent</span>
-                  <span className="font-medium">{fmt(Number(b.spent_amount))}</span>
-                </div>
-                <Progress value={pct} className="h-1.5" />
-                <div className="flex justify-between text-[10px]">
-                  <span className={remaining < 0 ? "text-red-500 font-medium" : "text-muted-foreground"}>
-                    {remaining < 0 ? "Overspent" : "Remaining"}: {fmt(remaining)}
-                  </span>
-                  <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
-                </div>
-                {b.budget_owner && <p className="text-[10px] text-muted-foreground">Owner: {b.budget_owner}</p>}
-                {isManager && (
-                  <div className="absolute top-2 right-2 hidden group-hover:flex gap-1">
-                    <button onClick={() => openEdit(b)} className="p-1 rounded-md bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-sm">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    {isAdmin && (
-                      <button onClick={() => { if (confirm("Delete this budget?")) deleteBudget.mutate(b.id); }} className="p-1 rounded-md bg-background/80 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shadow-sm">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                )}
+        <div className="space-y-6">
+          {Object.entries(grouped).map(([status, items]) => (
+            <div key={status}>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-sm font-semibold text-foreground capitalize">{status}</h3>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{items.length}</span>
               </div>
-            );
-          })}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(items as any[]).map((b, i) => {
+                  const pct = b.allocated_amount ? (Number(b.spent_amount) / Number(b.allocated_amount)) * 100 : 0;
+                  const evNum = b.events?.event_number;
+                  return (
+                    <div key={b.id} className="relative rounded-xl overflow-hidden border border-border/50 shadow-sm hover:shadow-md transition-shadow animate-slide-up" style={{ animationDelay: `${i * 40}ms` }}>
+                      <div className={`bg-gradient-to-br ${evNum && eventTheme[evNum] ? eventTheme[evNum].gradient : "from-gray-400 to-gray-600"} p-3 relative overflow-hidden`}>
+                        <div className="absolute -right-4 -top-4 opacity-15">
+                          {(() => { const Icon = evNum && eventTheme[evNum]?.icon || Wallet; return <Icon className="h-24 w-24 text-white" strokeWidth={1.2} />; })()}
+                        </div>
+                        <div className="relative flex items-center justify-between">
+                          <div className={`p-1.5 rounded-lg bg-white/25 backdrop-blur-sm ring-2 ${evNum && eventTheme[evNum] ? eventTheme[evNum].ring : "ring-gray-400/40"}`}>
+                            {(() => { const Icon = evNum && eventTheme[evNum]?.icon || Wallet; return <Icon className="h-4 w-4 text-white" strokeWidth={2.2} />; })()}
+                          </div>
+                          <div className="flex gap-1">
+                            {isManager && (
+                              <button onClick={() => { setSelectedBudget(b); setBudgetOpen(true); }} className="p-1 rounded-md bg-white/20 hover:bg-white/40 text-white transition-colors">
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button onClick={() => { if (confirm("Delete this budget?")) deleteBudget.mutate(b.id); }} className="p-1 rounded-md bg-white/20 hover:bg-white/40 text-white transition-colors">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="relative flex items-center gap-2 mt-2">
+                          <h3 className="text-sm font-bold text-white drop-shadow leading-tight flex-1">{b.title}</h3>
+                          <Badge variant="outline" className={`text-[10px] h-5 px-1.5 border-white/30 text-white ${statusColor[b.status]}`}>{b.status}</Badge>
+                        </div>
+                        <div className="relative flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-white/80 mt-1">
+                          {b.budget_categories?.name && (
+                            <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> {b.budget_categories.name}</span>
+                          )}
+                          {b.department && (
+                            <span className="flex items-center gap-1"><Building2 className="h-3 w-3" /> {b.department}</span>
+                          )}
+                          {b.events?.title && (
+                            <span className="flex items-center gap-1"><Layers className="h-3 w-3" /> #{b.events.event_number} {b.events.title}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-3 space-y-2 bg-card">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-muted-foreground">Spent <strong className="text-foreground">{fmt(Number(b.spent_amount))}</strong></span>
+                          <span className="text-muted-foreground">of <strong className="text-foreground">{fmt(Number(b.allocated_amount))}</strong></span>
+                        </div>
+                        <Progress value={pct} className="h-2" />
+                        <div className="flex justify-between text-[11px]">
+                          <span className={`font-medium ${pct >= 100 ? "text-destructive" : pct >= 80 ? "text-amber-600" : "text-emerald-600"}`}>
+                            {pct.toFixed(1)}% used
+                          </span>
+                          {b.priority && <span className="capitalize text-muted-foreground">{b.priority} priority</span>}
+                          {b.funding_source && <span className="text-muted-foreground">{b.funding_source}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) { setEditId(null); setForm(initialForm); } setDialogOpen(v); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editId ? "Edit Budget" : "Allocate Budget"}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><Label>Title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
-            <div><Label>Category</Label><Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Event</Label><Select value={form.event_id} onValueChange={(v) => setForm({ ...form, event_id: v })}><SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger><SelectContent>{events.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
-            <div><Label>Funding Source</Label><Input value={form.funding_source} onChange={(e) => setForm({ ...form, funding_source: e.target.value })} /></div>
-            <div><Label>Allocated Amount (PKR)</Label><Input type="number" value={form.allocated_amount} onChange={(e) => setForm({ ...form, allocated_amount: e.target.value })} /></div>
-            <div><Label>Expected Cost (PKR)</Label><Input type="number" value={form.expected_cost} onChange={(e) => setForm({ ...form, expected_cost: e.target.value })} /></div>
-            <div><Label>Priority</Label><Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="critical">Critical</SelectItem></SelectContent></Select></div>
-            <div><Label>Budget Owner</Label><Input value={form.budget_owner} onChange={(e) => setForm({ ...form, budget_owner: e.target.value })} /></div>
-            {editId && (
-              <div><Label>Status</Label><Select value={statusVal} onValueChange={setStatusVal}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
-                <SelectItem value="draft">Draft</SelectItem><SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem><SelectItem value="frozen">Frozen</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem><SelectItem value="archived">Archived</SelectItem>
-              </SelectContent></Select></div>
-            )}
-            <div className="flex items-center gap-2 col-span-2">
-              <Switch checked={form.approval_required} onCheckedChange={(v) => setForm({ ...form, approval_required: v })} />
-              <Label className="text-sm">Approval Required</Label>
-            </div>
-            <div className="col-span-2"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-            <div className="col-span-2"><Label>Remarks</Label><Textarea rows={2} value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} /></div>
-          </div>
-          <Button onClick={() => upsertBudget.mutate()} className="w-full" disabled={upsertBudget.isPending || !form.title}>
-            {upsertBudget.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {editId ? "Update Budget" : "Create Budget"}
-          </Button>
-        </DialogContent>
-      </Dialog>
+      <BudgetDialog />
     </div>
   );
 };

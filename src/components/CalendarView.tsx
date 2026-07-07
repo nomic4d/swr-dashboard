@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isPast } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { getPortalRole, canAccessManager } from "@/pages/portalUtils";
+import { toast } from "sonner";
 import CalendarEventModal from "./CalendarEventModal";
 import {
   MapPin,
@@ -26,6 +27,8 @@ import {
   Sparkles,
   Plus,
   Eye,
+  Pencil,
+  Trash2,
   CalendarDays,
 } from "lucide-react";
 
@@ -92,6 +95,26 @@ const CalendarView = () => {
     refetchOnWindowFocus: true,
   });
 
+  const queryClient = useQueryClient();
+
+  const deleteEvent = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("events").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["events"] }); toast.success("Event deleted"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateEvent = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      const { error } = await supabase.from("events").update(data).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["events"] }); toast.success("Event updated"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const visibleEvents = useMemo(() =>
     [...events].sort((a, b) => {
       const aDate = a.event_date ? new Date(a.event_date).getTime() : 0;
@@ -150,7 +173,7 @@ const CalendarView = () => {
             </div>
             <span className="text-[10px] bg-white/25 text-white px-2 py-0.5 rounded-full font-bold backdrop-blur-sm">#{event.event_number}</span>
           </div>
-          <h3 className="relative text-sm font-bold text-white mt-2 leading-tight drop-shadow">{event.title}</h3>
+          <h3 className="relative text-xl font-bold text-white mt-2 leading-tight drop-shadow">{event.title}</h3>
           <p className="relative text-white/80 text-[10px] font-medium mt-0.5">{event.month}</p>
         </div>
         <div className="p-2.5 space-y-1">
@@ -168,13 +191,33 @@ const CalendarView = () => {
           )}
           {past && <span className="inline-block text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Completed</span>}
         </div>
-        <button
-          onClick={() => handleOpenEvent(event)}
-          className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white text-foreground/70 hover:text-foreground shadow-sm transition-colors z-10"
-          title="Event info"
-        >
-          <Eye className="h-3.5 w-3.5" />
-        </button>
+        <div className="absolute top-2 right-2 flex gap-1 z-10">
+          {canManage && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleEditEvent(event); }}
+                className="p-1.5 rounded-full bg-white/80 hover:bg-white text-foreground/70 hover:text-foreground shadow-sm transition-colors"
+                title="Edit event"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (confirm("Delete this event?")) deleteEvent.mutate(event.id); }}
+                className="p-1.5 rounded-full bg-white/80 hover:bg-white text-foreground/70 hover:text-destructive shadow-sm transition-colors"
+                title="Delete event"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => handleOpenEvent(event)}
+            className="p-1.5 rounded-full bg-white/80 hover:bg-white text-foreground/70 hover:text-foreground shadow-sm transition-colors"
+            title="Event info"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     );
   };
@@ -281,7 +324,7 @@ const CalendarView = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {visibleEvents.map((event, index) => renderCard(event, index))}
       </div>
 
