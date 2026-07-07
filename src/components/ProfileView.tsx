@@ -213,13 +213,20 @@ const ProfileView = () => {
     <div className="animate-fade-in">
       <div className="relative rounded-xl overflow-hidden border border-border/50 bg-card">
         <div
-          className="h-36 bg-gradient-to-r from-indigo-700 via-violet-600 to-purple-600 relative group"
+          className="h-48 bg-gradient-to-r from-indigo-700 via-violet-600 to-purple-600 relative group"
           style={profile?.cover_url ? { backgroundImage: `url(${profile.cover_url})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
         >
           <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCover(f); }} />
           <button onClick={() => coverInputRef.current?.click()} disabled={coverUploading} className="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:bg-black/60 transition-opacity">
             {coverUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
           </button>
+          <div className="absolute bottom-4 left-4 z-10">
+            <h1 className="text-4xl font-bold text-white drop-shadow-lg">{profile?.full_name || user.email?.split("@")[0] || "User"}</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[11px] uppercase tracking-wide bg-white/20 text-white px-2.5 py-0.5 rounded-full font-medium backdrop-blur-sm">{profile?.role || "staff"}</span>
+              <span className="text-xs text-white/80">{user.email}</span>
+            </div>
+          </div>
         </div>
         <div className="px-6 pb-5">
           <div className="flex items-end gap-4 -mt-10">
@@ -232,13 +239,6 @@ const ProfileView = () => {
               <button onClick={() => fileInputRef.current?.click()} disabled={avatarUploading} className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity">
                 {avatarUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
               </button>
-            </div>
-            <div className="flex-1 min-w-0 pb-0.5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold truncate">{profile?.full_name || user.email?.split("@")[0] || "User"}</h2>
-                <span className="text-[10px] uppercase tracking-wide bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{profile?.role || "staff"}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
             <Dialog open={editing} onOpenChange={setEditing}>
               <DialogTrigger asChild>
