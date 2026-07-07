@@ -19,6 +19,7 @@ interface CalendarEventModalProps {
   onCancelEdit: () => void;
 }
 
+const restrictedTitles = ["available", "meeting"];
 const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, form, onFormChange, onSave, onStartEdit, onCancelEdit }: CalendarEventModalProps) => {
   if (!event) return null;
 
@@ -35,6 +36,9 @@ const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, f
                 <div>
                   <label className="mb-1 block text-sm font-medium">Event title</label>
                   <Input value={form.title || ""} onChange={(e) => onFormChange({ ...form, title: e.target.value })} placeholder="Event title" />
+                  {restrictedTitles.includes((form.title || "").trim().toLowerCase()) && (
+                    <p className="text-[11px] text-destructive">"Available" and "Meeting" are restricted titles</p>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium">Location</label>
@@ -86,7 +90,7 @@ const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, f
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <Button variant="outline" onClick={onCancelEdit}>Cancel</Button>
-              <Button className="gap-2" onClick={onSave}><PencilLine className="h-4 w-4" /> Update Event</Button>
+              <Button className="gap-2" onClick={onSave} disabled={restrictedTitles.includes((form.title || "").trim().toLowerCase())}><PencilLine className="h-4 w-4" /> Update Event</Button>
             </div>
           </div>
         ) : (

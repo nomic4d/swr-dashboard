@@ -236,8 +236,14 @@ const CalendarView = () => {
     setIsDetailsOpen(true);
   };
 
+  const restrictedTitles = ["available", "meeting"];
   const handleCreateEvent = async () => {
     if (!form.title || !form.event_date) return;
+    const titleLower = form.title.trim().toLowerCase();
+    if (restrictedTitles.includes(titleLower)) {
+      toast.error(`"${form.title}" is a restricted title and cannot be used`);
+      return;
+    }
     const detailLines = [
       form.location_link ? `Location Link: ${form.location_link}` : "",
       form.organizer_name ? `Organizer: ${form.organizer_name}` : "",
@@ -301,17 +307,20 @@ const CalendarView = () => {
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-1"><Plus className="h-3.5 w-3.5" /> New</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>Create event</DialogTitle></DialogHeader>
-                <div className="space-y-2">
-                  <Input placeholder="Event name" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                  <Input placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-                  <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                  <Input placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-                  <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
-                  <Button size="sm" className="w-full" onClick={handleCreateEvent}>Save event</Button>
-                </div>
-              </DialogContent>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader><DialogTitle>Create event</DialogTitle></DialogHeader>
+                  <div className="space-y-2">
+                    <Input placeholder="Event name" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                    {restrictedTitles.includes(form.title.trim().toLowerCase()) && (
+                      <p className="text-[11px] text-destructive">"Available" and "Meeting" are restricted titles</p>
+                    )}
+                    <Input placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+                    <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                    <Input placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+                    <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
+                    <Button size="sm" className="w-full" onClick={handleCreateEvent} disabled={restrictedTitles.includes(form.title.trim().toLowerCase())}>Save event</Button>
+                  </div>
+                </DialogContent>
             </Dialog>
           )}
         </div>
