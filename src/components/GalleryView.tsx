@@ -537,11 +537,11 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                           <AvatarFallback className="text-[9px]">{(profileByEmail[c.user_email]?.full_name || "U")[0]}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs">
+                          <p className="text-base leading-relaxed">
                             <span className="font-semibold">{profileByEmail[c.user_email]?.full_name || "Unknown"}</span>{" "}
-                            <span className="text-muted-foreground">{c.content}</span>
+                            <span className="text-muted-foreground [&>img]:inline [&>img]:h-8 [&>img]:w-8">{c.content}</span>
                           </p>
-                          <p className="text-[9px] text-muted-foreground mt-0.5 flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
                             {new Date(c.created_at).toLocaleDateString()}
                             <button onClick={() => toggleCommentReaction.mutate(c.id)}
                               className={`inline-flex items-center gap-0.5 hover:scale-110 transition-transform ${
@@ -549,7 +549,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                                   ? "text-red-500" : "text-muted-foreground/50 hover:text-red-400"
                               }`}
                             >
-                              <Heart className={`h-3 w-3 ${allCommentReactions.some((r: any) => r.comment_id === c.id && r.user_id === user?.id) ? "fill-current" : ""}`} />
+                              <Heart className={`h-5 w-5 ${allCommentReactions.some((r: any) => r.comment_id === c.id && r.user_id === user?.id) ? "fill-current" : ""}`} />
                               <span>{allCommentReactions.filter((r: any) => r.comment_id === c.id).length}</span>
                             </button>
                             {user?.id === c.user_id && (
@@ -602,14 +602,14 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                       <PopoverTrigger asChild>
                         <button className="text-muted-foreground hover:text-foreground transition-colors"><Smile className="h-4 w-4" /></button>
                       </PopoverTrigger>
-                      <PopoverContent side="top" align="end" className="w-[280px] p-2 border-border/50">
-                        <div className="grid grid-cols-6 gap-1 max-h-[200px] overflow-y-auto">
+                      <PopoverContent side="top" align="end" className="w-[350px] p-2 border-border/50">
+                        <div className="grid grid-cols-5 gap-1 max-h-[280px] overflow-y-auto">
                           {animatedEmojis.map((ae) => (
                             <button key={ae.name} onClick={() => setCommentInputs((prev) => ({ ...prev, [currentItem.id]: (prev[currentItem.id] || "") + ae.emoji }))}
                               className="p-1 rounded-md hover:bg-muted transition-colors flex items-center justify-center"
                               title={ae.name}
                             >
-                              <img src={ae.url} alt={ae.name} className="h-7 w-7 object-contain" loading="lazy" />
+                              <img src={ae.url} alt={ae.name} className="h-12 w-12 object-contain" loading="lazy" />
                             </button>
                           ))}
                         </div>
