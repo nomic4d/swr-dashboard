@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { assertUploadQuota, QUOTA_MESSAGE, rememberUpload } from "@/lib/uploadQuota";
 import { Upload, X, Image, Video, Loader2, CheckCircle2, AlertCircle, Film } from "lucide-react";
 
 interface FileItem {
@@ -82,8 +83,20 @@ const GalleryUploadDialog = ({ open, onOpenChange, events, albumId, defaultEvent
   const [mediaDate, setMediaDate] = useState(new Date().toISOString().split("T")[0]);
   const [mediaTime, setMediaTime] = useState("");
 
-  const addFiles = useCallback((incoming: FileList | File[]) => {
+  const addFiles = useCallback(async (incoming: FileList | File[]) => {
     const entries = Array.from(incoming);
+    if (!user) {
+      toast.error("Not logged in");
+      return;
+    }
+    try {
+      const incomingBytes = entries.reduce((sum, file) => sum + file.size, 0);
+      const selectedBytes = files.reduce((sum, file) => sum + file.file.size, 0);
+      await assertUploadQuota(user.id, incomingBytes + selectedBytes);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : QUOTA_MESSAGE);
+      return;
+    }
     const newFiles: FileItem[] = entries.map((file) => ({
       id: crypto.randomUUID(),
       file,
@@ -101,7 +114,7 @@ const GalleryUploadDialog = ({ open, onOpenChange, events, albumId, defaultEvent
         }).catch(() => { setFiles((prev) => prev.map((f) => f.id === itemId ? { ...f, thumbnailFile: undefined } : f)); });
       }
     }
-  }, []);
+  }, [files, user]);
 
   const removeFile = useCallback((id: string) => {
     setFiles((prev) => {
@@ -126,6 +139,10 @@ const GalleryUploadDialog = ({ open, onOpenChange, events, albumId, defaultEvent
       if (!user) throw new Error("Not logged in");
       const targetEventId = defaultEventId || events[0]?.id;
       if (!targetEventId) throw new Error("No event selected");
+      const incomingBytes = files
+        .filter((file) => file.status !== "done")
+        .reduce((sum, file) => sum + file.file.size + (file.thumbnailFile?.size || 0), 0);
+      await assertUploadQuota(user.id, incomingBytes);
 
       let done = 0;
       let firstError: string | null = null;
@@ -143,6 +160,7 @@ const GalleryUploadDialog = ({ open, onOpenChange, events, albumId, defaultEvent
             upsert: true,
           });
           if (upErr) throw upErr;
+          await rememberUpload(user.id, fileItem.file.size);
 
           const { data: { publicUrl } } = supabase.storage.from("event-media").getPublicUrl(path);
           const mediaType = fileItem.file.type.startsWith("video") ? "video" : "image";
@@ -157,6 +175,7 @@ const GalleryUploadDialog = ({ open, onOpenChange, events, albumId, defaultEvent
             });
             if (!thumbErr) {
               thumbnailUrl = supabase.storage.from("event-media").getPublicUrl(thumbPath).data.publicUrl;
+              await rememberUpload(user.id, fileItem.thumbnailFile.size);
             }
           }
 
@@ -209,6 +228,7 @@ const GalleryUploadDialog = ({ open, onOpenChange, events, albumId, defaultEvent
           >
             <Upload className="h-5 w-5 text-muted-foreground mb-2" />
             <p className="text-xs font-medium">Click or drag files here</p>
+            <p className="text-[10px] text-muted-foreground mt-1">5 MB upload space per user</p>
             <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => e.target.files && addFiles(e.target.files)} />
           </div>
 

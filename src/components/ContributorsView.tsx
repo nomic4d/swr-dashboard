@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Plus, Heart, Trash2, Loader2, Lock, Trophy, HandHeart, Medal } from "lucide-react";
 import { toast } from "sonner";
+import { assertUploadQuota, QUOTA_MESSAGE, rememberUpload } from "@/lib/uploadQuota";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { DUMMY_DONORS } from "@/data/dummyDonors";
@@ -71,10 +72,12 @@ const ContributorsView = () => {
     try {
       let imageUrl: string | null = null;
       if (form.file) {
+        await assertUploadQuota(user.id, form.file.size);
         const ext = form.file.name.split(".").pop();
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
         const { error } = await supabase.storage.from("campaign-images").upload(path, form.file);
         if (error) throw error;
+        await rememberUpload(user.id, form.file.size);
         imageUrl = supabase.storage.from("campaign-images").getPublicUrl(path).data.publicUrl;
       }
       const { error } = await supabase.from("campaigns").insert({
@@ -91,7 +94,7 @@ const ContributorsView = () => {
       setForm({ title: "", description: "", category: "Donation", goal_amount: "", file: null });
       setOpen(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
+      toast.error(e instanceof Error ? e.message : QUOTA_MESSAGE);
     } finally { setBusy(false); }
   };
 

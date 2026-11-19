@@ -9,7 +9,7 @@ import ProfileView from "@/components/ProfileView";
 import ContributorsView from "@/components/ContributorsView";
 import BudgetView from "@/components/BudgetView";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ const Index = () => {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [showPasswordReminder, setShowPasswordReminder] = useState(false);
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const role = getPortalRole(user?.email, (user as any)?.user_metadata?.role);
   const initials = (user?.email || "U").split("@")[0].slice(0, 2).toUpperCase();
   const pageTitles: Record<string, string> = { dashboard: "Dashboard", calendar: "Calendar", staff: "Staff", gallery: "Gallery", contributors: "Contributors", budget: "Budget", profile: "Profile", messages: "Messages" };
@@ -72,6 +72,9 @@ const Index = () => {
     setActiveTab(tab);
     setMobileMenu(false);
   };
+
+  if (loading) return <div className="min-h-screen bg-background" />;
+  if (!user) return <Navigate to="/auth" replace />;
 
   return (
     <div className="flex min-h-screen bg-background">

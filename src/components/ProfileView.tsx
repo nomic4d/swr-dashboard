@@ -9,6 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { assertUploadQuota, matchingBytes, QUOTA_MESSAGE, rememberUpload } from "@/lib/uploadQuota";
 import { Camera, Lock, Pencil, Image as ImageIcon, Folder, Loader2, ArrowLeft, ChevronLeft, ChevronRight, X, Trash2, Play } from "lucide-react";
 import { format } from "date-fns";
 import PlyrVideo from "./PlyrVideo";
@@ -157,15 +158,18 @@ const ProfileView = () => {
     if (!user?.id) return;
     setAvatarUploading(true);
     try {
+      const replaceBytes = await matchingBytes("staff-avatars", "avatars", user.id);
+      await assertUploadQuota(user.id, file.size, replaceBytes);
       const ext = file.name.split(".").pop();
       const path = `avatars/${user.id}.${ext}`;
       const { error: upErr } = await supabase.storage.from("staff-avatars").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
+      await rememberUpload(user.id, file.size, replaceBytes);
       const { data: { publicUrl } } = supabase.storage.from("staff-avatars").getPublicUrl(path);
       await updateProfile.mutateAsync({ avatar_url: publicUrl });
       refetchProfile();
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message || QUOTA_MESSAGE);
     } finally {
       setAvatarUploading(false);
     }
@@ -175,15 +179,18 @@ const ProfileView = () => {
     if (!user?.id) return;
     setCoverUploading(true);
     try {
+      const replaceBytes = await matchingBytes("staff-avatars", "covers", user.id);
+      await assertUploadQuota(user.id, file.size, replaceBytes);
       const ext = file.name.split(".").pop();
       const path = `covers/${user.id}.${ext}`;
       const { error: upErr } = await supabase.storage.from("staff-avatars").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
+      await rememberUpload(user.id, file.size, replaceBytes);
       const { data: { publicUrl } } = supabase.storage.from("staff-avatars").getPublicUrl(path);
       await updateProfile.mutateAsync({ cover_url: publicUrl });
       refetchProfile();
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message || QUOTA_MESSAGE);
     } finally {
       setCoverUploading(false);
     }
