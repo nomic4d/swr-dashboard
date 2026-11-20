@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { Calendar, Users, Heart, Clock, Wallet, HandHeart, Medal, Image, Play, Sparkles } from "lucide-react";
+import { Calendar, Users, Heart, Clock, Wallet, Image, Play, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isFuture } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
-import { restrictedKeywords, themeForEvent } from "./CalendarView";
+import { restrictedKeywords, themeForEvent, eventPhoto, eventPhotoPosition } from "./CalendarView";
 import { applyEventSchedule } from "./calendarUtils";
 import { DUMMY_DONORS } from "@/data/dummyDonors";
 
@@ -70,10 +70,6 @@ const DashboardView = () => {
     },
   });
 
-  const topDonors = DUMMY_DONORS.map((donor) => ({ name: donor.name, total: donor.total }));
-
-  const donorTotal = topDonors.reduce((s, d) => s + d.total, 0);
-
   const upcomingEvents = events.filter(e => e.event_date && isFuture(new Date(e.event_date)));
 
   const pendingReminders = reminders.filter(r => r.status === "pending");
@@ -100,7 +96,7 @@ const DashboardView = () => {
       label: "Staff Members",
       value: staff.length,
       icon: Users,
-      card: "bg-emerald-300 text-slate-950",
+      card: "text-slate-950",
       iconBg: "bg-emerald-700/10 text-emerald-900",
       labelText: "text-slate-800",
     },
@@ -155,10 +151,7 @@ const DashboardView = () => {
         </div>
       </div>
 
-      {/* Budget + Donors */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Budget card - spans 2 */}
-        <div className="lg:col-span-2 glass-card rounded-xl p-4">
+      <div className="glass-card rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600"><Wallet className="h-5 w-5" /></div>
@@ -184,53 +177,16 @@ const DashboardView = () => {
             </div>
           </div>
           <Progress value={budgetTotals.pct} className="h-2.5" />
-        </div>
-
-        {/* Donor card */}
-        <div className="glass-card rounded-xl p-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 rounded-lg bg-pink-500/10 text-pink-600"><HandHeart className="h-5 w-5" /></div>
-            <div>
-              <h3 className="font-semibold text-foreground">Top Donors</h3>
-              <p className="text-xs text-muted-foreground">PKR {donorTotal.toLocaleString()} contributed</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {topDonors.map((d, i) => (
-              <div key={d.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
-                <div className={`flex items-center justify-center h-7 w-7 rounded-full ${i === 0 ? "bg-yellow-500/20 text-yellow-600" : i === 1 ? "bg-slate-400/20 text-slate-500" : i === 2 ? "bg-amber-700/20 text-amber-700" : "bg-muted text-muted-foreground"}`}>
-                  {i < 3 ? <Medal className="h-3.5 w-3.5" /> : <span className="text-xs font-bold">{i + 1}</span>}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">PKR {d.total.toLocaleString()}</p>
-                </div>
-                <p className="text-sm font-bold text-pink-600">PKR {d.total.toLocaleString()}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
-};
-
-const eventBgImages: Record<string, string> = {
-  "Orange Fest": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSyxrhLksQpIhHTMJ083i1xQjcKM6c689KWSHr6VuRBoih5SYZVKwFVUsIt&s=10",
-  "Mango Fest": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSclZ9pk3wmlv1nml0vzWbSvGe5up4H-ofneclYSO48FCrCreRfrtP6SNWD&s=10",
-  "Eid Milan Party (High Tea)": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTsKHZZ6fSKvznTUqG-CSGPMu6swLohwp5UOt78I6-DFQ&s=10",
-  "Fun Fiesta Office Games Day": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTdObQDTQ098e6I8UD29AzNZkWIBlvNENvRk7EZaxw2zVzHlxnpLZ1dJSc&s=10",
-  "Sports Week": "http://shutterstock.com/image-photo/bokeh-photo-sports-balls-soccer-260nw-2534498537.jpg",
-  "Music Night": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgl5nQnYhr_YeWvnj49XaWauraoQbbwIHq4MhpIYCtFgZ3uwnj_YGWbBbZ&s=10",
-  "Hike and Drink": "https://experiencelife.lifetime.life/wp-content/uploads/2010/10/long-distance-hiking-1426344767.jpg",
-  "Soup Day / Movie Night": "https://variety.com/wp-content/uploads/2023/03/Movie-Theater-Film-Cinema-Exhibition-Placeholder.jpg?w=1000&h=562&crop=1",
 };
 
 const EventSlideCard = ({ stats, upcomingEvents }: { stats: any[]; upcomingEvents: any[] }) => {
   const withTheme = useMemo(() =>
     upcomingEvents.map((e: any) => ({
       ...e,
-      bg: eventBgImages[e.title],
+      bg: eventPhoto(e),
       theme: themeForEvent(e),
     })),
   [upcomingEvents]);
@@ -255,7 +211,7 @@ const EventSlideCard = ({ stats, upcomingEvents }: { stats: any[]; upcomingEvent
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat) => (
-        <div key={stat.label} className={`${stat.card} rounded-xl p-4 shadow-sm relative overflow-hidden ${stat.slideshow ? "min-h-[130px]" : ""}`}>
+        <div key={stat.label} className={`${stat.card} rounded-xl p-4 shadow-sm relative overflow-hidden h-full flex flex-col ${stat.slideshow ? "min-h-[168px]" : ""}`}>
           {stat.label === "Total Events" && (
             <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTvo1tZu2DVWXDDXyt4qGzDd8QnBFpmqbXN1-8Y-Z8ojOCDMIkZ6hnDCXk&s=10')", backgroundSize: "cover", backgroundPosition: "center" }} />
           )}
@@ -263,15 +219,18 @@ const EventSlideCard = ({ stats, upcomingEvents }: { stats: any[]; upcomingEvent
             <div className="absolute inset-0 bg-black/30 pointer-events-none" />
           )}
           {stat.label === "Staff Members" && (
-            <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ backgroundImage: "url('https://www.adb.org/sites/default/files/page/568906/images/life-adb-our-global-offices-cambodia-2025.jpg')", backgroundSize: "cover", backgroundPosition: "center" }} />
+            <>
+              <div className="absolute inset-0" style={{ backgroundImage: "url('https://www.adb.org/sites/default/files/page/568906/images/life-adb-our-global-offices-cambodia-2025.jpg')", backgroundSize: "cover", backgroundPosition: "center" }} />
+              <div className="absolute inset-0 bg-emerald-300/50 pointer-events-none" />
+            </>
           )}
           {stat.slideshow && current?.bg && (
-            <div className={`absolute inset-0 transition-opacity duration-300 ${slideFade ? "opacity-100" : "opacity-0"}`}>
-              <img src={current.bg} alt="" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
-            </div>
+            <img src={current.bg} alt="" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${slideFade ? "opacity-100" : "opacity-0"}`} style={{ objectPosition: eventPhotoPosition(current) }} />
           )}
-          <div className="relative flex flex-col gap-2">
+          {stat.slideshow && current && !current.bg && (
+            <div className={`absolute inset-0 bg-gradient-to-br ${current.theme.gradient} transition-opacity duration-300 ${slideFade ? "opacity-100" : "opacity-0"}`} />
+          )}
+          <div className={`relative flex flex-col gap-2 ${stat.isContributors ? "flex-1" : ""}`}>
             <div className="flex items-center justify-between">
               <p className={`text-sm font-medium ${stat.slideshow ? "text-white" : stat.labelText}`}>{stat.label}</p>
               <div className={`${stat.slideshow ? "bg-white/20 text-white" : stat.iconBg} p-2 rounded-xl shadow-sm`}>
@@ -279,7 +238,7 @@ const EventSlideCard = ({ stats, upcomingEvents }: { stats: any[]; upcomingEvent
               </div>
             </div>
             {stat.isContributors ? (
-              <div className="space-y-1.5 mt-0.5">
+              <div className="flex flex-1 flex-col justify-between gap-2 mt-1">
                 {DUMMY_DONORS.map((donor, i) => {
                   const c = {
                     name: donor.name,
@@ -290,16 +249,16 @@ const EventSlideCard = ({ stats, upcomingEvents }: { stats: any[]; upcomingEvent
                   const maxAmount = DUMMY_DONORS[0]?.total || 1;
                   const pct = (c.amount / maxAmount) * 100;
                   return (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className={`w-5 h-5 rounded-full ${c.color} flex items-center justify-center text-[8px] font-bold text-white shrink-0`}>
+                    <div key={i} className="flex items-center gap-2.5">
+                      <div className={`w-7 h-7 rounded-full ${c.color} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>
                         {c.avatar}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex justify-between text-[10px]">
+                        <div className="flex justify-between text-xs">
                           <span className="font-medium truncate">{c.name}</span>
                           <span className="text-muted-foreground shrink-0">Rs.{c.amount.toLocaleString()}</span>
                         </div>
-                        <div className="h-1.5 rounded-full bg-muted mt-0.5 overflow-hidden">
+                        <div className="h-2.5 rounded-full bg-muted mt-1 overflow-hidden">
                           <div className={`h-full rounded-full ${c.color} transition-all`} style={{ width: `${pct}%` }} />
                         </div>
                       </div>
@@ -348,16 +307,19 @@ const YearlyCalendar = ({ events }: { events: any[] }) => {
     .filter((entry) => entry.events.length > 0);
 
   return (
-    <div className="lg:col-span-2 glass-card rounded-xl p-4" style={{ backgroundColor: "#e8f4fd" }}>
-      <h3 className="font-semibold text-foreground mb-3">2026 Yearly Calendar</h3>
+    <div className="lg:col-span-2 glass-card rounded-xl p-4" style={{ backgroundColor: "#d6e6fb" }}>
+      <h3 className="font-semibold text-slate-950 mb-3">2026 Yearly Calendar</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filled.map(({ month, events: monthEvents }) => (
-          <div key={month} className="rounded-2xl overflow-hidden shadow-md min-h-[132px] flex flex-col">
+          <div key={month} className="rounded-2xl overflow-hidden shadow-md flex flex-col h-full">
             {monthEvents.map((event: any, index: number) => {
               const theme = themeForEvent(event);
               const Icon = theme.icon;
               return (
-                <div key={event.id} className={`relative flex-1 bg-gradient-to-br ${theme.gradient} px-3 py-3 flex items-center gap-2.5`}>
+                <div
+                  key={event.id}
+                  className={`relative flex-1 min-h-[76px] bg-gradient-to-br ${theme.gradient} px-3 flex items-center gap-2.5`}
+                >
                   {index === 0 && (
                     <span className="absolute top-2 right-2 text-[10px] font-bold uppercase tracking-wider text-white bg-black/15 px-2 py-0.5 rounded-full">
                       {month.slice(0, 3)}

@@ -31,7 +31,7 @@ export const CANONICAL_EVENTS: ScheduledEvent[] = [
   { key: "retreat-july", title: "One Night Retreat at Hill", month: "July", event_date: "2026-07-18", event_number: 5, location: "Hill Station" },
   { key: "fiesta", title: "Fun Fiesta Office Games Day", month: "November", event_date: "2026-11-08", event_number: 6, location: "Islamabad" },
   { key: "music", title: "Music Night", month: "November", event_date: "2026-11-22", event_number: 7, location: "Islamabad" },
-  { key: "supports", title: "Supports Day", month: "December", event_date: "2026-12-12", event_number: 8, location: "Islamabad" },
+  { key: "supports", title: "Sports Day", month: "December", event_date: "2026-12-12", event_number: 8, location: "Islamabad" },
   { key: "gift", title: "Gift Vouchers for Staff", month: "December", event_date: "2026-12-20", event_number: 9, location: "Islamabad" },
 ];
 
@@ -45,7 +45,7 @@ const scheduleKey = (title: string) => {
   if (t.includes("fiesta") || t.includes("games")) return "fiesta";
   if (t.includes("music")) return "music";
   if (t.includes("gift") || t.includes("voucher")) return "gift";
-  if (t.includes("support") || t.includes("soup") || t.includes("movie")) return "supports";
+  if (t.includes("sport") || t.includes("support") || t.includes("soup") || t.includes("movie")) return "supports";
   return null;
 };
 

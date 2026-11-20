@@ -68,6 +68,34 @@ export const eventTheme: Record<number, { icon: typeof Citrus; gradient: string;
   10: { icon: Film, gradient: "from-blue-400 to-blue-600", ring: "ring-blue-400/40" },
 };
 
+export const eventPhoto = (event?: { title?: string | null; event_date?: string | null; event_number?: number | null; month?: string | null } | null, displayMonth?: string) => {
+  const t = (event?.title || "").toLowerCase();
+  const month = (event?.month || "").toLowerCase();
+  const shown = (displayMonth || "").toLowerCase();
+  const date = event?.event_date || "";
+  if (t.includes("orange")) return "/events/orange-fest.jpg";
+  if (t.includes("eid")) return "/events/eid.jpg";
+  if (t.includes("mango")) return shown.startsWith("jul") ? "/events/mango2.jpg" : "/events/mango-fest.jpg";
+  if (t.includes("retreat") || t.includes("hill")) {
+    if (month.includes("july") || date.startsWith("2026-07") || event?.event_number === 5) return "/events/retreat-july.jpg";
+    return "/events/retreat-june.jpg";
+  }
+  if (t.includes("fiesta") || t.includes("funfista")) return "/events/fun-fiesta.jpg";
+  if (t.includes("fusion") || t.includes("cuisine") || t.includes("cultural")) return "/events/rabab.jpg";
+  if (t.includes("music")) return "/events/rabab2.jpg";
+  if (t.includes("gift") || t.includes("voucher")) return "/events/gift-vouchers.jpg";
+  if (t.includes("sport")) return "/events/sports-day.jpg";
+  return "";
+};
+
+export const eventPhotoPosition = (event?: { title?: string | null } | null) => {
+  const t = (event?.title || "").toLowerCase();
+  if (t.includes("gift") || t.includes("voucher")) return "left center";
+  if (t.includes("sport")) return "center 72%";
+  if (t.includes("eid")) return "center 40%";
+  return "center";
+};
+
 export const themeForEvent = (event: { title?: string | null; event_number?: number | null }) => {
   const title = (event.title || "").toLowerCase();
   if (title.includes("orange")) return eventTheme[1];
@@ -77,6 +105,7 @@ export const themeForEvent = (event: { title?: string | null; event_number?: num
   if (title.includes("mango")) return eventTheme[6];
   if (title.includes("music")) return eventTheme[8];
   if (title.includes("gift") || title.includes("voucher")) return { icon: Gift, gradient: "from-amber-400 to-yellow-500", ring: "ring-amber-400/40" };
+  if (title.includes("sport")) return { icon: Trophy, gradient: "from-emerald-600 to-sky-800", ring: "ring-sky-400/40" };
   if (title.includes("support")) return { icon: Heart, gradient: "from-rose-400 to-rose-600", ring: "ring-rose-400/40" };
   return eventTheme[event.event_number as number] || { icon: Sparkles, gradient: "from-gray-400 to-gray-600", ring: "ring-gray-400/40" };
 };
@@ -178,10 +207,15 @@ const CalendarView = () => {
     const past = event.event_date ? isPast(new Date(event.event_date)) : false;
     const theme = themeForEvent(event);
     const Icon = theme.icon;
+    const photo = eventPhoto(event);
 
     return (
       <div key={event.id} className="relative rounded-xl overflow-hidden bg-card border border-border/50 shadow-sm hover:shadow-md transition-shadow min-h-[220px]">
-        <div className={`bg-gradient-to-br ${theme.gradient} p-3 relative overflow-hidden`}>
+        <div
+          className="p-3 relative overflow-hidden min-h-[148px]"
+          style={photo ? { backgroundImage: `url(${photo})`, backgroundSize: "cover", backgroundPosition: eventPhotoPosition(event) } : undefined}
+        >
+          <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} ${photo ? "opacity-90" : "opacity-100"}`} />
           <div className="absolute -right-4 -top-4 opacity-15">
             <Icon className="h-24 w-24 text-white" strokeWidth={1.2} />
           </div>
