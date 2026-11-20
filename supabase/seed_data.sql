@@ -18,7 +18,8 @@ SELECT * FROM (VALUES
   ('One Night Retreat at Hill', 'Overnight retreat at hill station', '2026-07-18', 'July', 5, 'Hill Station'),
   ('Fun Fiesta Office Games Day', 'Office games and fun activities', '2026-11-08', 'November', 6, 'Islamabad'),
   ('Music Night', 'Music night performance', '2026-11-22', 'November', 7, 'Islamabad'),
-  ('Supports Day', 'Supports day', '2026-12-12', 'December', 8, 'Islamabad')
+  ('Supports Day', 'Supports day', '2026-12-12', 'December', 8, 'Islamabad'),
+  ('Gift Vouchers for Staff', 'Gift vouchers for staff', '2026-12-20', 'December', 9, 'Islamabad')
 ) AS v(title, description, event_date, month, event_number, location)
 WHERE NOT EXISTS (SELECT 1 FROM public.events WHERE event_number = v.event_number);
 

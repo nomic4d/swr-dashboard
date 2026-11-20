@@ -25,6 +25,7 @@ import {
   Footprints,
   Film,
   Heart,
+  Gift,
   Sparkles,
   Plus,
   Eye,
@@ -75,6 +76,7 @@ export const themeForEvent = (event: { title?: string | null; event_number?: num
   if (title.includes("retreat") || title.includes("hill")) return eventTheme[5];
   if (title.includes("mango")) return eventTheme[6];
   if (title.includes("music")) return eventTheme[8];
+  if (title.includes("gift") || title.includes("voucher")) return { icon: Gift, gradient: "from-amber-400 to-yellow-500", ring: "ring-amber-400/40" };
   if (title.includes("support")) return { icon: Heart, gradient: "from-rose-400 to-rose-600", ring: "ring-rose-400/40" };
   return eventTheme[event.event_number as number] || { icon: Sparkles, gradient: "from-gray-400 to-gray-600", ring: "ring-gray-400/40" };
 };
@@ -147,33 +149,28 @@ const CalendarView = () => {
   const getFormValues = (event?: any) => {
     const description = typeof event?.description === "string" ? event.description : "";
     const parts = description.split(/\n\s*\n/).filter(Boolean);
-    const timings = parts.find((part: string) => /^Timings:/i.test(part))?.replace(/^Timings:\s*/i, "") || "";
-    const body = parts.filter((part: string) => !/^Timings:/i.test(part)).join("\n\n");
-
-    const detailLines = [
-      event?.location_link ? `Location Link: ${event.location_link}` : "",
-      event?.organizer_name ? `Organizer: ${event.organizer_name}` : "",
-      event?.organizer_phone ? `Organizer Phone: ${event.organizer_phone}` : "",
-      event?.departure_time ? `Departure Time: ${event.departure_time}` : "",
-      event?.arrival_time ? `Arrival Time: ${event.arrival_time}` : "",
-      event?.is_night_stay !== undefined && event?.is_night_stay !== null ? `Night Stay: ${event.is_night_stay ? "Yes" : "No"}` : "",
-    ].filter(Boolean);
+    const readLine = (label: string) => {
+      const match = parts.find((part: string) => part.toLowerCase().startsWith(label.toLowerCase()));
+      return match ? match.slice(label.length).trim() : "";
+    };
+    const timings = readLine("Timings:") || event?.start_time || "";
+    const nightStay = readLine("Night Stay:");
+    const body = parts.filter((part: string) => !/^(Timings|Category|Location Link|Organizer Phone|Organizer|Departure Time|Arrival Time|Night Stay):/i.test(part)).join("\n\n");
 
     return {
       title: event?.title || "",
-      category: event?.category || "",
+      category: event?.category || readLine("Category:"),
       description: body,
       location: event?.location || "",
-      location_link: event?.location_link || "",
-      organizer_name: event?.organizer_name || "",
-      organizer_phone: event?.organizer_phone || "",
-      departure_time: event?.departure_time || "",
-      arrival_time: event?.arrival_time || "",
-      is_night_stay: Boolean(event?.is_night_stay),
-      event_date: event?.event_date || format(new Date(), "yyyy-MM-dd"),
+      location_link: event?.location_link || readLine("Location Link:"),
+      organizer_name: event?.organizer_name || readLine("Organizer:"),
+      organizer_phone: event?.organizer_phone || readLine("Organizer Phone:"),
+      departure_time: event?.departure_time || readLine("Departure Time:"),
+      arrival_time: event?.arrival_time || readLine("Arrival Time:") || event?.end_time || "",
+      is_night_stay: event?.is_night_stay ?? /^yes$/i.test(nightStay),
+      event_date: (event?.event_date || format(new Date(), "yyyy-MM-dd")).slice(0, 10),
       event_time: event?.event_time || "",
       timings,
-      detailLines,
     };
   };
 
@@ -232,7 +229,7 @@ const CalendarView = () => {
             </>
           )}
           <button
-            onClick={() => handleOpenEvent(event)}
+            onClick={(e) => { e.stopPropagation(); handleOpenEvent(event); }}
             className="p-1.5 rounded-full bg-white/80 hover:bg-white text-foreground/70 hover:text-foreground shadow-sm transition-colors"
             title="Event info"
           >
@@ -246,7 +243,7 @@ const CalendarView = () => {
   const handleOpenEvent = (event: any) => {
     setSelectedEvent(event);
     setForm(getFormValues(event));
-    setIsEditing(canManage);
+    setIsEditing(false);
     setIsDetailsOpen(true);
   };
 
@@ -265,6 +262,8 @@ const CalendarView = () => {
       return;
     }
     const detailLines = [
+      form.category ? `Category: ${form.category}` : "",
+      form.timings ? `Timings: ${form.timings}` : "",
       form.location_link ? `Location Link: ${form.location_link}` : "",
       form.organizer_name ? `Organizer: ${form.organizer_name}` : "",
       form.organizer_phone ? `Organizer Phone: ${form.organizer_phone}` : "",
@@ -272,46 +271,46 @@ const CalendarView = () => {
       form.arrival_time ? `Arrival Time: ${form.arrival_time}` : "",
       `Night Stay: ${form.is_night_stay ? "Yes" : "No"}`,
     ].filter(Boolean);
-    const combinedDescription = [form.description, form.timings ? `Timings: ${form.timings}` : "", ...detailLines].filter(Boolean).join("\n\n");
-    const payload = {
-      title: form.title,
-      category: form.category || null,
+    const combinedDescription = [form.description, ...detailLines].filter(Boolean).join("\n\n");
+    const eventDate = new Date(`${form.event_date}T12:00:00`);
+    const payload: Record<string, string | number | null> = {
+      title: form.title.trim(),
       description: combinedDescription || null,
       location: form.location || null,
-      location_link: form.location_link || null,
-      organizer_name: form.organizer_name || null,
-      organizer_phone: form.organizer_phone || null,
-      departure_time: form.departure_time || null,
-      arrival_time: form.arrival_time || null,
-      is_night_stay: form.is_night_stay,
       event_date: form.event_date,
-      month: format(new Date(form.event_date), "MMMM"),
-      event_number: events.length + 1,
+      month: format(eventDate, "MMMM"),
+      start_time: form.departure_time || form.timings || null,
+      end_time: form.arrival_time || null,
     };
-    const { error } = selectedEvent?.id && isEditing
-      ? await supabase.from("events").update(payload).eq("id", selectedEvent.id)
-      : await supabase.from("events").insert(payload);
-    if (!error) {
-      setIsManagerFormOpen(false);
-      setIsDetailsOpen(false);
-      setIsEditing(false);
-      setForm({
-        title: "",
-        category: "",
-        description: "",
-        location: "",
-        location_link: "",
-        organizer_name: "",
-        organizer_phone: "",
-        departure_time: "",
-        arrival_time: "",
-        is_night_stay: false,
-    event_date: format(new Date(), "yyyy-MM-dd"),
-        event_time: "",
-        timings: "",
-      });
-      window.location.reload();
+    const editing = Boolean(selectedEvent?.id && isEditing);
+    if (!editing) payload.event_number = events.length + 1;
+    const { data, error } = editing
+      ? await supabase.from("events").update(payload).eq("id", selectedEvent.id).select("id")
+      : await supabase.from("events").insert(payload).select("id");
+    if (error || !data?.length) {
+      toast.error(error?.message || "Could not update event");
+      return;
     }
+    toast.success(editing ? "Event updated" : "Event created");
+    queryClient.invalidateQueries({ queryKey: ["events"] });
+    setIsManagerFormOpen(false);
+    setIsDetailsOpen(false);
+    setIsEditing(false);
+    setForm({
+      title: "",
+      category: "",
+      description: "",
+      location: "",
+      location_link: "",
+      organizer_name: "",
+      organizer_phone: "",
+      departure_time: "",
+      arrival_time: "",
+      is_night_stay: false,
+      event_date: format(new Date(), "yyyy-MM-dd"),
+      event_time: "",
+      timings: "",
+    });
   };
 
   return (
