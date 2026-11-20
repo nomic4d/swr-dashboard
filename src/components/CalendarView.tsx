@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { getPortalRole, canAccessManager } from "@/pages/portalUtils";
 import { toast } from "sonner";
 import CalendarEventModal from "./CalendarEventModal";
+import { applyEventSchedule, CANONICAL_EVENTS } from "./calendarUtils";
 import {
   MapPin,
   Calendar as CalendarIcon,
@@ -19,11 +20,11 @@ import {
   Gamepad2,
   Bus,
   Mountain,
-  Grape,
   Trophy,
   Music,
   Footprints,
   Film,
+  Heart,
   Sparkles,
   Plus,
   Eye,
@@ -32,18 +33,24 @@ import {
   CalendarDays,
 } from "lucide-react";
 
-const fallbackEvents = [
-  { id: "fb-1", title: "Orange Fest", event_date: "2026-02-02", month: "February", event_number: 1, location: "Islamabad", description: null, created_at: "", updated_at: "" },
-  { id: "fb-2", title: "Eid Milan Party (High Tea)", event_date: "2026-03-15", month: "March", event_number: 2, location: "Islamabad", description: null, created_at: "", updated_at: "" },
-  { id: "fb-3", title: "Fun Fiesta Office Games Day", event_date: "2026-04-28", month: "April", event_number: 3, location: "Islamabad", description: null, created_at: "", updated_at: "" },
-  { id: "fb-4", title: "Day Trip to Tarbela Lake", event_date: "2026-05-28", month: "May", event_number: 4, location: "Tarbela", description: null, created_at: "", updated_at: "" },
-  { id: "fb-5", title: "One Night Retreat at Hill Station & Dinner", event_date: "2026-06-15", month: "June", event_number: 5, location: "Hill Station", description: null, created_at: "", updated_at: "" },
-  { id: "fb-6", title: "Mango Fest", event_date: "2026-07-15", month: "July-August", event_number: 6, location: "Islamabad", description: null, created_at: "", updated_at: "" },
-  { id: "fb-7", title: "Sports Week", event_date: "2026-09-12", month: "September", event_number: 7, location: "Islamabad", description: null, created_at: "", updated_at: "" },
-  { id: "fb-8", title: "Music Night", event_date: "2026-10-17", month: "October", event_number: 8, location: "Islamabad", description: null, created_at: "", updated_at: "" },
-  { id: "fb-9", title: "Hike and Drink", event_date: "2026-11-14", month: "November", event_number: 9, location: "Margalla Hills", description: null, created_at: "", updated_at: "" },
-  { id: "fb-10", title: "Soup Day / Movie Night", event_date: "2026-12-12", month: "December", event_number: 10, location: "Islamabad", description: null, created_at: "", updated_at: "" },
-];
+const fallbackEvents = CANONICAL_EVENTS.map((event) => ({
+  id: `fb-${event.key}`,
+  title: event.title,
+  event_date: event.event_date,
+  month: event.month,
+  event_number: event.event_number,
+  location: event.location,
+  description: null,
+  created_at: "",
+  updated_at: "",
+}));
+
+const MangoIcon = ({ className }: { className?: string; strokeWidth?: number }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+    <path d="M14.6 4.1c.7-.9 2-.9 2.6.1.5.8-.1 1.7-1 2.1 2.4.7 4.6 2.6 5.4 5.2 1.1 3.6-.4 7.2-3.5 8.8-3.3 1.7-7.4.7-9.6-2.3-2.3-3.1-2.4-7.4-.2-10.2 1.5-1.9 3.8-3 6.3-3.1-.4-.7-.2-1.5.4-1.9.1 0 .2.1.4.3-.3-.4-.2-.8-.8-.9z" />
+    <path d="M13.4 3.4c1.5-1.3 3.2-.8 3.6.2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
 
 export const restrictedKeywords = ["available", "meeting", "traveling", "vew"];
 
@@ -53,11 +60,23 @@ export const eventTheme: Record<number, { icon: typeof Citrus; gradient: string;
   3: { icon: Gamepad2, gradient: "from-sky-400 to-sky-600", ring: "ring-sky-400/40" },
   4: { icon: Bus, gradient: "from-cyan-400 to-cyan-600", ring: "ring-cyan-400/40" },
   5: { icon: Mountain, gradient: "from-indigo-400 to-indigo-600", ring: "ring-indigo-400/40" },
-   6: { icon: Grape, gradient: "from-amber-400 to-amber-600", ring: "ring-amber-400/40" },
+   6: { icon: MangoIcon, gradient: "from-yellow-300 to-orange-500", ring: "ring-orange-400/40" },
   7: { icon: Trophy, gradient: "from-rose-400 to-rose-600", ring: "ring-rose-400/40" },
   8: { icon: Music, gradient: "from-violet-400 to-violet-600", ring: "ring-violet-400/40" },
   9: { icon: Footprints, gradient: "from-teal-400 to-teal-600", ring: "ring-teal-400/40" },
   10: { icon: Film, gradient: "from-blue-400 to-blue-600", ring: "ring-blue-400/40" },
+};
+
+export const themeForEvent = (event: { title?: string | null; event_number?: number | null }) => {
+  const title = (event.title || "").toLowerCase();
+  if (title.includes("orange")) return eventTheme[1];
+  if (title.includes("eid")) return eventTheme[2];
+  if (title.includes("fiesta") || title.includes("games")) return eventTheme[3];
+  if (title.includes("retreat") || title.includes("hill")) return eventTheme[5];
+  if (title.includes("mango")) return eventTheme[6];
+  if (title.includes("music")) return eventTheme[8];
+  if (title.includes("support")) return { icon: Heart, gradient: "from-rose-400 to-rose-600", ring: "ring-rose-400/40" };
+  return eventTheme[event.event_number as number] || { icon: Sparkles, gradient: "from-gray-400 to-gray-600", ring: "ring-gray-400/40" };
 };
 
 const CalendarView = () => {
@@ -89,7 +108,7 @@ const CalendarView = () => {
     queryFn: async ({ signal }) => {
       const { data, error } = await supabase.from("events").select("*").order("event_number").abortSignal(signal);
       if (error || !data?.length) return fallbackEvents;
-      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); });
+      return applyEventSchedule((data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); }));
     },
     initialData: fallbackEvents,
     retry: 2,
@@ -118,7 +137,7 @@ const CalendarView = () => {
   });
 
   const visibleEvents = useMemo(() =>
-    [...events].sort((a, b) => {
+    applyEventSchedule(events).sort((a, b) => {
       const aDate = a.event_date ? new Date(a.event_date).getTime() : 0;
       const bDate = b.event_date ? new Date(b.event_date).getTime() : 0;
       return aDate - bDate;
@@ -160,7 +179,7 @@ const CalendarView = () => {
 
   const renderCard = (event: any, index: number) => {
     const past = event.event_date ? isPast(new Date(event.event_date)) : false;
-    const theme = eventTheme[event.event_number as number] || { icon: Sparkles, gradient: "from-gray-400 to-gray-600", ring: "ring-gray-400/40" };
+    const theme = themeForEvent(event);
     const Icon = theme.icon;
 
     return (

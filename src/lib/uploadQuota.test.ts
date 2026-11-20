@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { USER_QUOTA_BYTES, exceedsQuota } from "./uploadLimit";
+import { ASIF_QUOTA_BYTES, USER_QUOTA_BYTES, exceedsQuota, quotaForEmail } from "./uploadLimit";
 
 describe("upload quota", () => {
   it("allows a file inside the 5 MB share", () => {
@@ -12,5 +12,11 @@ describe("upload quota", () => {
 
   it("treats a replacement as the new file size only", () => {
     expect(exceedsQuota(USER_QUOTA_BYTES, 1024 * 1024, USER_QUOTA_BYTES)).toBe(false);
+  });
+
+  it("gives asif@adb.org 100 MB", () => {
+    expect(quotaForEmail("asif@adb.org")).toBe(ASIF_QUOTA_BYTES);
+    expect(exceedsQuota(0, 80 * 1024 * 1024, 0, quotaForEmail("Asif@adb.org"))).toBe(false);
+    expect(exceedsQuota(0, 80 * 1024 * 1024)).toBe(true);
   });
 });

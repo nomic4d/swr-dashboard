@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
-import { Calendar, CalendarDays, Users, Heart, Clock, Wallet, HandHeart, Medal, Image, Play, Sparkles } from "lucide-react";
+import { Calendar, Users, Heart, Clock, Wallet, HandHeart, Medal, Image, Play, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isFuture } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
-import { eventTheme, restrictedKeywords } from "./CalendarView";
+import { restrictedKeywords, themeForEvent } from "./CalendarView";
+import { applyEventSchedule } from "./calendarUtils";
+import { DUMMY_DONORS } from "@/data/dummyDonors";
 
 const DashboardView = () => {
   const { user } = useAuth();
@@ -15,7 +17,7 @@ const DashboardView = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("events").select("*").order("event_number");
       if (error) throw error;
-      return (data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); });
+      return applyEventSchedule((data ?? []).filter((e: any) => { const t = (e.title || "").trim().toLowerCase(); return !restrictedKeywords.some((k) => t.includes(k)); }));
     },
   });
 
@@ -46,15 +48,6 @@ const DashboardView = () => {
     },
   });
 
-  const { data: contributions = [] } = useQuery({
-    queryKey: ["dashboard-contributions"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("contributions").select("contributor_name, amount").order("amount", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
   const budgetTotals = useMemo(() => {
     const allocated = budgetRows.reduce((s: number, b: any) => s + Number(b.allocated_amount || 0), 0);
     const consumed = budgetRows.reduce((s: number, b: any) => s + Number(b.spent_amount || 0), 0);
@@ -77,14 +70,7 @@ const DashboardView = () => {
     },
   });
 
-  const topDonors = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const c of contributions) {
-      const name = c.contributor_name.trim();
-      map.set(name, (map.get(name) || 0) + Number(c.amount));
-    }
-    return Array.from(map.entries()).map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total).slice(0, 10);
-  }, [contributions]);
+  const topDonors = DUMMY_DONORS.map((donor) => ({ name: donor.name, total: donor.total }));
 
   const donorTotal = topDonors.reduce((s, d) => s + d.total, 0);
 
@@ -245,7 +231,7 @@ const EventSlideCard = ({ stats, upcomingEvents }: { stats: any[]; upcomingEvent
     upcomingEvents.map((e: any) => ({
       ...e,
       bg: eventBgImages[e.title],
-      theme: eventTheme[e.event_number as number] || { icon: CalendarDays, gradient: "from-gray-400 to-gray-600", ring: "ring-gray-400/40" },
+      theme: themeForEvent(e),
     })),
   [upcomingEvents]);
 
@@ -294,13 +280,14 @@ const EventSlideCard = ({ stats, upcomingEvents }: { stats: any[]; upcomingEvent
             </div>
             {stat.isContributors ? (
               <div className="space-y-1.5 mt-0.5">
-                {[
-                  { name: "Ahmed Ali", amount: 12500, color: "bg-rose-500", avatar: "AA" },
-                  { name: "Sara Khan", amount: 10000, color: "bg-blue-500", avatar: "SK" },
-                  { name: "Usman Malik", amount: 8000, color: "bg-emerald-500", avatar: "UM" },
-                  { name: "Fatima Noor", amount: 6000, color: "bg-violet-500", avatar: "FN" },
-                ].map((c, i) => {
-                  const maxAmount = 12500;
+                {DUMMY_DONORS.map((donor, i) => {
+                  const c = {
+                    name: donor.name,
+                    amount: donor.total,
+                    color: ["bg-rose-500", "bg-blue-500", "bg-emerald-500", "bg-violet-500"][i] || "bg-slate-500",
+                    avatar: donor.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase(),
+                  };
+                  const maxAmount = DUMMY_DONORS[0]?.total || 1;
                   const pct = (c.amount / maxAmount) * 100;
                   return (
                     <div key={i} className="flex items-center gap-2">
@@ -349,50 +336,46 @@ const EventSlideCard = ({ stats, upcomingEvents }: { stats: any[]; upcomingEvent
 
 const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-const YearlyCalendar = ({ events }: { events: any[] }) => (
-  <div className="lg:col-span-2 glass-card rounded-xl p-4" style={{ backgroundColor: "#e8f4fd" }}>
-    <h3 className="font-semibold text-foreground mb-3">2026 Yearly Calendar</h3>
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-      {months.map((month) => {
-        const monthEvents = events.filter((e: any) => {
-          const m = (e.month || "").toLowerCase();
-          return m.includes(month.toLowerCase()) || m.includes(month.slice(0,3).toLowerCase());
-        });
-        const firstEvent = monthEvents[0];
-        const theme = firstEvent ? (eventTheme[firstEvent.event_number as number] || { icon: CalendarDays, gradient: "from-gray-400 to-gray-600", ring: "ring-gray-400/40" }) : null;
-        const Icon = theme?.icon || CalendarDays;
-        return (
-          <div key={month} className={`rounded-xl p-3 min-h-[110px] flex flex-col relative overflow-hidden ${theme ? `bg-gradient-to-br ${theme.gradient} shadow-sm` : "bg-card/50"}`}>
-            {Icon && theme && <div className="absolute -right-3 -top-3 opacity-15 pointer-events-none"><Icon className="h-16 w-16 text-white" strokeWidth={1.2} /></div>}
-            <p className={`relative z-10 text-[9px] font-bold uppercase tracking-wider mb-2 px-1.5 py-0.5 rounded-full ${theme ? "bg-white/20 text-white backdrop-blur-sm self-start" : "text-muted-foreground"}`}>{month.slice(0,3)}</p>
-            {monthEvents.length > 0 ? (
-              <div className="flex flex-col gap-1.5 flex-1 relative z-10">
-                {monthEvents.map((event: any) => {
-                  const eTheme = eventTheme[event.event_number as number] || { icon: CalendarDays, gradient: "from-gray-400 to-gray-600", ring: "ring-gray-400/40" };
-                  const EIcon = eTheme.icon;
-                  return (
-                    <div key={event.id} className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/25 backdrop-blur-sm">
-                          <EIcon className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-                        </div>
-                        <span className="text-sm font-bold text-white leading-tight line-clamp-2">{event.title}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <span className="text-[10px] text-muted-foreground/30">—</span>
-              </div>
-            )}
+const eventsInMonth = (events: any[], month: string) =>
+  events.filter((event) => {
+    const label = (event.month || "").toLowerCase();
+    return label.includes(month.toLowerCase());
+  });
+
+const YearlyCalendar = ({ events }: { events: any[] }) => {
+  const filled = months
+    .map((month) => ({ month, events: eventsInMonth(events, month) }))
+    .filter((entry) => entry.events.length > 0);
+
+  return (
+    <div className="lg:col-span-2 glass-card rounded-xl p-4" style={{ backgroundColor: "#e8f4fd" }}>
+      <h3 className="font-semibold text-foreground mb-3">2026 Yearly Calendar</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {filled.map(({ month, events: monthEvents }) => (
+          <div key={month} className="rounded-2xl overflow-hidden shadow-md min-h-[132px] flex flex-col">
+            {monthEvents.map((event: any, index: number) => {
+              const theme = themeForEvent(event);
+              const Icon = theme.icon;
+              return (
+                <div key={event.id} className={`relative flex-1 bg-gradient-to-br ${theme.gradient} px-3 py-3 flex items-center gap-2.5`}>
+                  {index === 0 && (
+                    <span className="absolute top-2 right-2 text-[10px] font-bold uppercase tracking-wider text-white bg-black/15 px-2 py-0.5 rounded-full">
+                      {month.slice(0, 3)}
+                    </span>
+                  )}
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/25 shrink-0">
+                    <Icon className="h-4 w-4 text-white" strokeWidth={2.2} />
+                  </div>
+                  <span className="text-sm font-bold text-white leading-tight pr-8">{event.title}</span>
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SlideShowWidget = ({ albums, media }: { albums: any[]; media: any[] }) => {
   const { data: profiles = [] } = useQuery({

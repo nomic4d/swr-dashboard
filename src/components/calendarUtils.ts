@@ -14,6 +14,70 @@ export interface CalendarEventItem {
   updated_at?: string;
 }
 
+type ScheduledEvent = {
+  key: string;
+  title: string;
+  month: string;
+  event_date: string;
+  event_number: number;
+  location: string;
+};
+
+export const CANONICAL_EVENTS: ScheduledEvent[] = [
+  { key: "orange", title: "Orange Fest", month: "February", event_date: "2026-02-02", event_number: 1, location: "Islamabad" },
+  { key: "eid", title: "Eid Milan Party (High Tea)", month: "March", event_date: "2026-03-15", event_number: 2, location: "Islamabad" },
+  { key: "mango", title: "Mango Fest", month: "June-July", event_date: "2026-06-05", event_number: 3, location: "Islamabad" },
+  { key: "retreat-june", title: "One Night Retreat at Hill", month: "June", event_date: "2026-06-15", event_number: 4, location: "Hill Station" },
+  { key: "retreat-july", title: "One Night Retreat at Hill", month: "July", event_date: "2026-07-18", event_number: 5, location: "Hill Station" },
+  { key: "fiesta", title: "Fun Fiesta Office Games Day", month: "November", event_date: "2026-11-08", event_number: 6, location: "Islamabad" },
+  { key: "music", title: "Music Night", month: "November", event_date: "2026-11-22", event_number: 7, location: "Islamabad" },
+  { key: "supports", title: "Supports Day", month: "December", event_date: "2026-12-12", event_number: 8, location: "Islamabad" },
+];
+
+const scheduleKey = (title: string) => {
+  const t = title.toLowerCase();
+  if (t.includes("orange")) return "orange";
+  if (t.includes("eid")) return "eid";
+  if (t.includes("mango")) return "mango";
+  if (t.includes("tarbela") || t.includes("day trip")) return "retreat-july";
+  if (t.includes("retreat") || t.includes("hill")) return "retreat-june";
+  if (t.includes("fiesta") || t.includes("games")) return "fiesta";
+  if (t.includes("music")) return "music";
+  if (t.includes("support") || t.includes("soup") || t.includes("movie")) return "supports";
+  return null;
+};
+
+export const applyEventSchedule = <T extends CalendarEventItem>(events: T[]): T[] => {
+  const matched = new Map<string, T>();
+  for (const event of events) {
+    const key = scheduleKey(event.title || "");
+    if (!key || matched.has(key)) continue;
+    matched.set(key, event);
+  }
+  return CANONICAL_EVENTS.map((slot) => {
+    const existing = matched.get(slot.key);
+    if (!existing) {
+      return {
+        id: `schedule-${slot.key}`,
+        title: slot.title,
+        month: slot.month,
+        event_date: slot.event_date,
+        event_number: slot.event_number,
+        location: slot.location,
+        description: null,
+      } as T;
+    }
+    return {
+      ...existing,
+      title: slot.title,
+      month: slot.month,
+      event_date: slot.event_date,
+      event_number: slot.event_number,
+      location: slot.location,
+    };
+  });
+};
+
 export const getEventsForView = (
   events: CalendarEventItem[],
   view: CalendarViewMode,

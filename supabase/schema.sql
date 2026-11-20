@@ -201,7 +201,27 @@ ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Campaigns viewable by everyone" ON public.campaigns FOR SELECT USING (true);
 CREATE POLICY "Staff can create campaigns" ON public.campaigns FOR INSERT
   WITH CHECK (auth.uid() = creator_id AND (public.has_role(auth.uid(), 'staff') OR public.has_role(auth.uid(), 'admin')));
-CREATE POLICY "Owners update own campaigns" ON public.campaigns FOR UPDATE USING (auth.uid() = creator_id OR public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Owners update own campaigns" ON public.campaigns FOR UPDATE
+  USING (
+    auth.uid() = creator_id
+    OR public.has_role(auth.uid(), 'admin')
+    OR lower(coalesce(auth.jwt() ->> 'email', '')) IN ('nom.studios@gmail.com', 'manager@organization.org', 'asif@adb.org')
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE lower(p.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        AND p.role IN ('admin', 'manager')
+    )
+  )
+  WITH CHECK (
+    auth.uid() = creator_id
+    OR public.has_role(auth.uid(), 'admin')
+    OR lower(coalesce(auth.jwt() ->> 'email', '')) IN ('nom.studios@gmail.com', 'manager@organization.org', 'asif@adb.org')
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE lower(p.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        AND p.role IN ('admin', 'manager')
+    )
+  );
 CREATE POLICY "Owners or admins delete campaigns" ON public.campaigns FOR DELETE
   USING (auth.uid() = creator_id OR public.has_role(auth.uid(), 'admin'));
 

@@ -41,14 +41,12 @@ INSERT INTO public.events (title, description, event_date, month, event_number, 
 SELECT * FROM (VALUES
   ('Orange Fest', 'Annual Orange Fest celebration', '2026-02-02'::date, 'February', 1, 'Islamabad'),
   ('Eid Milan Party (High Tea)', 'Eid Milan high tea event', '2026-03-15'::date, 'March', 2, 'Islamabad'),
-  ('Fun Fiesta Office Games Day', 'Office games and fun activities', '2026-04-28'::date, 'April', 3, 'Islamabad'),
-  ('Day Trip to Tarbela Lake', 'Day trip to Tarbela Lake', '2026-05-28'::date, 'May', 4, 'Tarbela'),
-  ('One Night Retreat at Hill Station & Dinner', 'Overnight retreat at hill station', '2026-06-15'::date, 'June', 5, 'Hill Station'),
-  ('Mango Fest', 'Mango festival celebration', '2026-07-15'::date, 'July-August', 6, 'Islamabad'),
-  ('Sports Week', 'Annual sports week', '2026-09-12'::date, 'September', 7, 'Islamabad'),
-  ('Music Night', 'Music night performance', '2026-10-17'::date, 'October', 8, 'Islamabad'),
-  ('Hike and Drink', 'Hiking trip to Margalla Hills', '2026-11-14'::date, 'November', 9, 'Margalla Hills'),
-  ('Soup Day / Movie Night', 'Soup day and movie night', '2026-12-12'::date, 'December', 10, 'Islamabad')
+  ('Mango Fest', 'Mango festival celebration', '2026-06-05'::date, 'June-July', 3, 'Islamabad'),
+  ('One Night Retreat at Hill', 'Overnight retreat at hill station', '2026-06-15'::date, 'June', 4, 'Hill Station'),
+  ('One Night Retreat at Hill', 'Overnight retreat at hill station', '2026-07-18'::date, 'July', 5, 'Hill Station'),
+  ('Fun Fiesta Office Games Day', 'Office games and fun activities', '2026-11-08'::date, 'November', 6, 'Islamabad'),
+  ('Music Night', 'Music night performance', '2026-11-22'::date, 'November', 7, 'Islamabad'),
+  ('Supports Day', 'Supports day', '2026-12-12'::date, 'December', 8, 'Islamabad')
 ) AS v(title, description, event_date, month, event_number, location)
 WHERE NOT EXISTS (SELECT 1 FROM public.events WHERE event_number = v.event_number);
 
@@ -74,10 +72,10 @@ ON CONFLICT DO NOTHING;
 -- ========== 5. Seed Campaigns ==========
 INSERT INTO public.campaigns (id, title, description, category, goal_amount, raised_amount, status)
 SELECT * FROM (VALUES
-  (gen_random_uuid(), 'Flood Relief Campaign', 'Support for flood-affected families', 'Emergency Response', 500000, 150000, 'active'),
-  (gen_random_uuid(), 'Food Distribution Drive', 'Distributing food packages to communities in need', 'Community Service', 200000, 80000, 'active'),
-  (gen_random_uuid(), 'Medical Camp', 'Free medical checkup camp for underprivileged', 'Healthcare', 300000, 120000, 'active'),
-  (gen_random_uuid(), 'Tree Plantation Drive', 'Planting trees for a greener environment', 'Environment', 100000, 45000, 'active')
+  (gen_random_uuid(), 'Flood Relief Campaign', 'Support for flood-affected families', 'Emergency Response', 500000, 0, 'active'),
+  (gen_random_uuid(), 'Food Distribution Drive', 'Distributing food packages to communities in need', 'Community Service', 200000, 0, 'active'),
+  (gen_random_uuid(), 'Medical Camp', 'Free medical checkup camp for underprivileged', 'Healthcare', 300000, 0, 'active'),
+  (gen_random_uuid(), 'Tree Plantation Drive', 'Planting trees for a greener environment', 'Environment', 100000, 0, 'active')
 ) AS v(id, title, description, category, goal_amount, raised_amount, status)
 WHERE NOT EXISTS (SELECT 1 FROM public.campaigns WHERE title = v.title);
 

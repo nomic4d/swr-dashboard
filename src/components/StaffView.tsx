@@ -12,7 +12,7 @@ import { Plus, Phone, Trash2, UserCheck, UserX, Mail, Send, User as UserIcon, Up
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getPortalRole, canAccessManager } from "@/pages/portalUtils";
-import { QUOTA_MESSAGE, USER_QUOTA_BYTES } from "@/lib/uploadLimit";
+import { QUOTA_MESSAGE, quotaForEmail } from "@/lib/uploadLimit";
 
 const StaffView = () => {
   const queryClient = useQueryClient();
@@ -75,7 +75,7 @@ const StaffView = () => {
     try {
       let avatar_url: string | null = null;
       if (avatarFile) {
-        if (avatarFile.size > USER_QUOTA_BYTES) throw new Error(QUOTA_MESSAGE);
+        if (avatarFile.size > quotaForEmail(user?.email)) throw new Error(QUOTA_MESSAGE);
         const ext = avatarFile.name.split(".").pop();
         const path = `${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("staff-avatars").upload(path, avatarFile);
@@ -163,10 +163,10 @@ const StaffView = () => {
                   <Label className="text-xs text-muted-foreground">Profile Picture (optional)</Label>
                   <label className="mt-1 flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background hover:bg-accent cursor-pointer text-sm">
                     <Upload className="h-4 w-4" />
-                    <span>{avatarFile ? avatarFile.name : "Choose image (5 MB max)"}</span>
+                    <span>{avatarFile ? avatarFile.name : `Choose image (${quotaForEmail(user?.email) / (1024 * 1024)} MB max)`}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                       const file = e.target.files?.[0] ?? null;
-                      if (file && file.size > USER_QUOTA_BYTES) {
+                      if (file && file.size > quotaForEmail(user?.email)) {
                         toast.error(QUOTA_MESSAGE);
                         e.target.value = "";
                         return;

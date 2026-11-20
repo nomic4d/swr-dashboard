@@ -13,14 +13,12 @@ INSERT INTO public.events (title, description, event_date, month, event_number, 
 SELECT * FROM (VALUES
   ('Orange Fest', 'Annual Orange Fest celebration', '2026-02-02', 'February', 1, 'Islamabad'),
   ('Eid Milan Party (High Tea)', 'Eid Milan high tea event', '2026-03-15', 'March', 2, 'Islamabad'),
-  ('Fun Fiesta Office Games Day', 'Office games and fun activities', '2026-04-28', 'April', 3, 'Islamabad'),
-  ('Day Trip to Tarbela Lake', 'Day trip to Tarbela Lake', '2026-05-28', 'May', 4, 'Tarbela'),
-  ('One Night Retreat at Hill Station & Dinner', 'Overnight retreat at hill station', '2026-06-15', 'June', 5, 'Hill Station'),
-  ('Mango Fest', 'Mango festival celebration', '2026-07-15', 'July-August', 6, 'Islamabad'),
-  ('Sports Week', 'Annual sports week', '2026-09-12', 'September', 7, 'Islamabad'),
-  ('Music Night', 'Music night performance', '2026-10-17', 'October', 8, 'Islamabad'),
-  ('Hike and Drink', 'Hiking trip to Margalla Hills', '2026-11-14', 'November', 9, 'Margalla Hills'),
-  ('Soup Day / Movie Night', 'Soup day and movie night', '2026-12-12', 'December', 10, 'Islamabad')
+  ('Mango Fest', 'Mango festival celebration', '2026-06-05', 'June-July', 3, 'Islamabad'),
+  ('One Night Retreat at Hill', 'Overnight retreat at hill station', '2026-06-15', 'June', 4, 'Hill Station'),
+  ('One Night Retreat at Hill', 'Overnight retreat at hill station', '2026-07-18', 'July', 5, 'Hill Station'),
+  ('Fun Fiesta Office Games Day', 'Office games and fun activities', '2026-11-08', 'November', 6, 'Islamabad'),
+  ('Music Night', 'Music night performance', '2026-11-22', 'November', 7, 'Islamabad'),
+  ('Supports Day', 'Supports day', '2026-12-12', 'December', 8, 'Islamabad')
 ) AS v(title, description, event_date, month, event_number, location)
 WHERE NOT EXISTS (SELECT 1 FROM public.events WHERE event_number = v.event_number);
 
@@ -41,10 +39,10 @@ WHERE NOT EXISTS (SELECT 1 FROM public.staff WHERE email = v.email);
 -- Insert campaigns (using a placeholder creator_id for dev)
 INSERT INTO public.campaigns (title, description, category, goal_amount, raised_amount, status)
 SELECT * FROM (VALUES
-  ('Flood Relief Campaign', 'Support for flood-affected families', 'Emergency Response', 500000, 150000, 'active'),
-  ('Food Distribution Drive', 'Distributing food packages to communities in need', 'Community Service', 200000, 80000, 'active'),
-  ('Medical Camp', 'Free medical checkup camp for underprivileged', 'Healthcare', 300000, 120000, 'active'),
-  ('Tree Plantation Drive', 'Planting trees for a greener environment', 'Environment', 100000, 45000, 'active')
+  ('Flood Relief Campaign', 'Support for flood-affected families', 'Emergency Response', 500000, 0, 'active'),
+  ('Food Distribution Drive', 'Distributing food packages to communities in need', 'Community Service', 200000, 0, 'active'),
+  ('Medical Camp', 'Free medical checkup camp for underprivileged', 'Healthcare', 300000, 0, 'active'),
+  ('Tree Plantation Drive', 'Planting trees for a greener environment', 'Environment', 100000, 0, 'active')
 ) AS v(title, description, category, goal_amount, raised_amount, status)
 WHERE NOT EXISTS (SELECT 1 FROM public.campaigns WHERE title = v.title);
 

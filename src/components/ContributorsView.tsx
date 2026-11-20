@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,63 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Heart, Trash2, Loader2, Lock, Trophy, HandHeart, Medal } from "lucide-react";
+import { Plus, Heart, Trash2, Loader2, Lock, Trophy, HandHeart, Medal, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { assertUploadQuota, QUOTA_MESSAGE, rememberUpload } from "@/lib/uploadQuota";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { DUMMY_DONORS } from "@/data/dummyDonors";
+import { canAccessManager, getPortalRole } from "@/pages/portalUtils";
 
 const CATEGORIES = ["Donation", "Helping the Poor", "Volunteering", "Disaster Relief", "Education", "Health", "Other"];
+const AMOUNT_STORE_TITLE = "campaign amount overrides meeting";
+
+type AmountOverride = { raised: number; goal: number };
+
+const readAmountOverrides = async (): Promise<{ id?: string; map: Record<string, AmountOverride> }> => {
+  const { data, error } = await supabase
+    .from("events")
+    .select("id, description")
+    .eq("title", AMOUNT_STORE_TITLE)
+    .limit(1);
+  if (error) throw error;
+  const row = data?.[0];
+  try {
+    const parsed = row?.description ? JSON.parse(row.description) : {};
+    return { id: row?.id, map: parsed && typeof parsed === "object" ? parsed : {} };
+  } catch {
+    return { id: row?.id, map: {} };
+  }
+};
+
+const writeAmountOverrides = async (id: string | undefined, map: Record<string, AmountOverride>) => {
+  const description = JSON.stringify(map);
+  if (id) {
+    const { data, error } = await supabase.from("events").update({ description }).eq("id", id).select("id");
+    if (error) throw error;
+    if (!data?.length) throw new Error("Could not save amounts");
+    return;
+  }
+  const { data, error } = await supabase
+    .from("events")
+    .insert({
+      title: AMOUNT_STORE_TITLE,
+      description,
+      month: "Internal",
+      event_date: "2099-01-01",
+      event_number: 99,
+      location: "Internal",
+    })
+    .select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error("Could not save amounts");
+};
 
 const ContributorsView = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const role = getPortalRole(user?.email, (user as { user_metadata?: { role?: string } } | null)?.user_metadata?.role);
+  const canEditAmounts = canAccessManager(role);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", category: "Donation", goal_amount: "", file: null as File | null });
@@ -29,13 +74,26 @@ const ContributorsView = () => {
   const [contribOpen, setContribOpen] = useState(false);
   const [contribCampaign, setContribCampaign] = useState<{ id: string; title: string } | null>(null);
   const [contribForm, setContribForm] = useState({ name: "", amount: "", note: "" });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editCampaign, setEditCampaign] = useState<{ id: string; title: string } | null>(null);
+  const [editForm, setEditForm] = useState({ raised: "", goal: "" });
 
   const { data: campaigns = [] } = useQuery({
     queryKey: ["campaigns"],
     queryFn: async () => {
       const { data, error } = await supabase.from("campaigns").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      let overrides: Record<string, AmountOverride> = {};
+      try {
+        overrides = (await readAmountOverrides()).map;
+      } catch {
+        overrides = {};
+      }
+      return (data ?? []).map((campaign) => {
+        const saved = overrides[campaign.id];
+        if (!saved) return campaign;
+        return { ...campaign, raised_amount: saved.raised, goal_amount: saved.goal };
+      });
     },
   });
 
@@ -51,20 +109,7 @@ const ContributorsView = () => {
     },
   });
 
-  const leaderboard = useMemo(() => {
-    const map = new Map<string, { name: string; total: number; count: number }>();
-    for (const d of DUMMY_DONORS) {
-      map.set(d.name.toLowerCase(), { name: d.name, total: d.total, count: d.count });
-    }
-    for (const c of contributions) {
-      const key = c.contributor_name.trim().toLowerCase();
-      const cur = map.get(key) || { name: c.contributor_name, total: 0, count: 0 };
-      cur.total += Number(c.amount) || 0;
-      cur.count += 1;
-      map.set(key, cur);
-    }
-    return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 10);
-  }, [contributions]);
+  const leaderboard = DUMMY_DONORS.map((d) => ({ name: d.name, total: d.total, count: d.count }));
 
   const handleCreate = async () => {
     if (!user) return;
@@ -139,6 +184,51 @@ const ContributorsView = () => {
     setContribOpen(true);
   };
 
+  const openEditAmounts = (c: { id: string; title: string; raised_amount: number; goal_amount: number | null }) => {
+    setEditCampaign({ id: c.id, title: c.title });
+    setEditForm({
+      raised: String(Number(c.raised_amount) || 0),
+      goal: String(Number(c.goal_amount) || 0),
+    });
+    setEditOpen(true);
+  };
+
+  const saveAmounts = async () => {
+    if (!canEditAmounts || !editCampaign) return;
+    const raised = Number(editForm.raised);
+    const goal = Number(editForm.goal);
+    if (!Number.isFinite(raised) || raised < 0 || !Number.isFinite(goal) || goal < 0) {
+      toast.error("Enter amounts of 0 or more");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { data, error } = await supabase
+        .from("campaigns")
+        .update({ raised_amount: raised, goal_amount: goal })
+        .eq("id", editCampaign.id)
+        .select("id");
+      if (error) throw error;
+      const store = await readAmountOverrides();
+      if (data?.length) {
+        if (store.map[editCampaign.id]) {
+          delete store.map[editCampaign.id];
+          await writeAmountOverrides(store.id, store.map);
+        }
+      } else {
+        store.map[editCampaign.id] = { raised, goal };
+        await writeAmountOverrides(store.id, store.map);
+      }
+      toast.success("Amounts updated");
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      setEditOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update amounts");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const medalColor = (i: number) =>
     i === 0 ? "text-yellow-500" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-700" : "text-muted-foreground";
 
@@ -211,15 +301,25 @@ const ContributorsView = () => {
                       </div>
                       <h3 className="font-bold text-lg text-foreground">{c.title}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-3 flex-1">{c.description}</p>
-                      {goal > 0 && (
-                        <div className="pt-2">
-                          <Progress value={pct} className="h-2" />
-                          <div className="flex justify-between text-xs mt-1 text-muted-foreground">
-                            <span>PKR {raised.toLocaleString()} raised</span>
-                            <span>Goal PKR {goal.toLocaleString()}</span>
-                          </div>
+                      <div className="pt-2">
+                        <Progress value={pct} className="h-2" />
+                        <div className="flex justify-between items-center gap-2 text-xs mt-1 text-muted-foreground">
+                          <span>PKR {raised.toLocaleString()} raised</span>
+                          <span className="flex items-center gap-1.5">
+                            Goal PKR {goal.toLocaleString()}
+                            {canEditAmounts && (
+                              <button
+                                type="button"
+                                onClick={() => openEditAmounts(c)}
+                                className="text-muted-foreground hover:text-foreground"
+                                aria-label={`Edit amounts for ${c.title}`}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </span>
                         </div>
-                      )}
+                      </div>
                       {user ? (
                         <Button size="sm" className="w-full mt-2 gap-2" onClick={() => openContribute({ id: c.id, title: c.title })}>
                           <HandHeart className="h-4 w-4" /> Contribute
@@ -290,6 +390,25 @@ const ContributorsView = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit amounts · {editCampaign?.title}</DialogTitle></DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div>
+              <Label>Raised (PKR)</Label>
+              <Input type="number" min="0" value={editForm.raised} onChange={(e) => setEditForm({ ...editForm, raised: e.target.value })} />
+            </div>
+            <div>
+              <Label>Goal (PKR)</Label>
+              <Input type="number" min="0" value={editForm.goal} onChange={(e) => setEditForm({ ...editForm, goal: e.target.value })} />
+            </div>
+            <Button className="w-full gap-2" onClick={saveAmounts} disabled={busy}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />} Save amounts
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Contribute dialog */}
       <Dialog open={contribOpen} onOpenChange={setContribOpen}>

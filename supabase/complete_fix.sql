@@ -232,14 +232,12 @@ INSERT INTO public.events (title, event_date, month, event_number, location, des
 SELECT * FROM (VALUES
   ('Orange Fest', '2026-02-02'::date, 'February', 1, 'Islamabad', 'Annual Orange Fest celebration'),
   ('Eid Milan Party (High Tea)', '2026-03-15'::date, 'March', 2, 'Islamabad', 'Eid Milan high tea event'),
-  ('Fun Fiesta Office Games Day', '2026-04-28'::date, 'April', 3, 'Islamabad', 'Office games and fun activities'),
-  ('Day Trip to Tarbela Lake', '2026-05-28'::date, 'May', 4, 'Tarbela', 'Day trip to Tarbela Lake'),
-  ('One Night Retreat at Hill Station & Dinner', '2026-06-15'::date, 'June', 5, 'Hill Station', 'Overnight retreat at hill station'),
-  ('Mango Fest', '2026-07-15'::date, 'July-August', 6, 'Islamabad', 'Mango festival celebration'),
-  ('Sports Week', '2026-09-12'::date, 'September', 7, 'Islamabad', 'Annual sports week'),
-  ('Music Night', '2026-10-17'::date, 'October', 8, 'Islamabad', 'Music night performance'),
-  ('Hike and Drink', '2026-11-14'::date, 'November', 9, 'Margalla Hills', 'Hiking trip to Margalla Hills'),
-  ('Soup Day / Movie Night', '2026-12-12'::date, 'December', 10, 'Islamabad', 'Soup day and movie night')
+  ('Mango Fest', '2026-06-05'::date, 'June-July', 3, 'Islamabad', 'Mango festival celebration'),
+  ('One Night Retreat at Hill', '2026-06-15'::date, 'June', 4, 'Hill Station', 'Overnight retreat at hill station'),
+  ('One Night Retreat at Hill', '2026-07-18'::date, 'July', 5, 'Hill Station', 'Overnight retreat at hill station'),
+  ('Fun Fiesta Office Games Day', '2026-11-08'::date, 'November', 6, 'Islamabad', 'Office games and fun activities'),
+  ('Music Night', '2026-11-22'::date, 'November', 7, 'Islamabad', 'Music night performance'),
+  ('Supports Day', '2026-12-12'::date, 'December', 8, 'Islamabad', 'Supports day')
 ) AS v(title, event_date, month, event_number, location, description)
 WHERE NOT EXISTS (SELECT 1 FROM public.events LIMIT 1);
 

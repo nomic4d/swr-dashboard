@@ -34,6 +34,8 @@ const BudgetView = () => {
 
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryForm, setSummaryForm] = useState({ total: "", consumed: "", remaining: "" });
 
   const { data: budgets = [] } = useQuery({
     queryKey: ["budgets"],
@@ -81,6 +83,101 @@ const BudgetView = () => {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["budgets"] }); toast.success("Budget updated"); setBudgetOpen(false); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const openSummaryEdit = () => {
+    setSummaryForm({
+      total: String(totalAllocated),
+      consumed: String(totalSpent),
+      remaining: String(totalRemaining),
+    });
+    setSummaryOpen(true);
+  };
+
+  const setSummaryTotal = (value: string) => {
+    const total = Number(value);
+    const consumed = Number(summaryForm.consumed);
+    setSummaryForm({
+      total: value,
+      consumed: summaryForm.consumed,
+      remaining: Number.isFinite(total) && Number.isFinite(consumed) ? String(total - consumed) : summaryForm.remaining,
+    });
+  };
+
+  const setSummaryConsumed = (value: string) => {
+    const total = Number(summaryForm.total);
+    const consumed = Number(value);
+    setSummaryForm({
+      total: summaryForm.total,
+      consumed: value,
+      remaining: Number.isFinite(total) && Number.isFinite(consumed) ? String(total - consumed) : summaryForm.remaining,
+    });
+  };
+
+  const setSummaryRemaining = (value: string) => {
+    const total = Number(summaryForm.total);
+    const remaining = Number(value);
+    setSummaryForm({
+      total: summaryForm.total,
+      consumed: Number.isFinite(total) && Number.isFinite(remaining) ? String(total - remaining) : summaryForm.consumed,
+      remaining: value,
+    });
+  };
+
+  const saveSummary = useMutation({
+    mutationFn: async () => {
+      const total = Number(summaryForm.total);
+      const consumed = Number(summaryForm.consumed);
+      if (!Number.isFinite(total) || total < 0 || !Number.isFinite(consumed) || consumed < 0) {
+        throw new Error("Enter amounts of 0 or more");
+      }
+      if (budgets.length === 0) {
+        const { error } = await supabase.from("budgets").insert({
+          title: "General Budget",
+          allocated_amount: total,
+          spent_amount: consumed,
+          status: "approved",
+          created_by: user?.email,
+        });
+        if (error) throw error;
+        return;
+      }
+
+      const patches = new Map<string, { allocated_amount?: number; spent_amount?: number }>();
+      const applyDelta = (field: "allocated_amount" | "spent_amount", delta: number) => {
+        if (delta === 0) return;
+        if (delta > 0) {
+          const row = budgets[0];
+          const current = patches.get(row.id) || {};
+          patches.set(row.id, { ...current, [field]: Number(current[field] ?? row[field]) + delta });
+          return;
+        }
+        let left = -delta;
+        for (const row of budgets) {
+          if (left <= 0) break;
+          const current = patches.get(row.id) || {};
+          const value = Number(current[field] ?? row[field]);
+          const take = Math.min(value, left);
+          patches.set(row.id, { ...current, [field]: value - take });
+          left -= take;
+        }
+        if (left > 0) throw new Error("That total is lower than the budgets can go");
+      };
+
+      applyDelta("allocated_amount", total - totalAllocated);
+      applyDelta("spent_amount", consumed - totalSpent);
+
+      for (const [id, data] of patches) {
+        const { error } = await supabase.from("budgets").update(data).eq("id", id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      toast.success("Budget totals updated");
+      setSummaryOpen(false);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -220,10 +317,15 @@ const BudgetView = () => {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shrink-0">
               <DollarSign className="h-5 w-5 text-white" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-xs font-medium text-muted-foreground">Total Budget</p>
               <p className="text-lg font-bold">{fmt(totalAllocated)}</p>
             </div>
+            {isManager && (
+              <button type="button" onClick={openSummaryEdit} className="text-muted-foreground hover:text-foreground" aria-label="Edit total budget">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all" style={{ width: "100%" }} />
@@ -234,10 +336,15 @@ const BudgetView = () => {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center shrink-0">
               <TrendingUp className="h-5 w-5 text-white" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-xs font-medium text-muted-foreground">Consumed</p>
               <p className="text-lg font-bold">{fmt(totalSpent)}</p>
             </div>
+            {isManager && (
+              <button type="button" onClick={openSummaryEdit} className="text-muted-foreground hover:text-foreground" aria-label="Edit consumed budget">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-rose-500 transition-all" style={{ width: `${Math.min(usagePct, 100)}%` }} />
@@ -249,10 +356,15 @@ const BudgetView = () => {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-yellow-500 flex items-center justify-center shrink-0">
               <Wallet className="h-5 w-5 text-white" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-xs font-medium text-muted-foreground">Remaining</p>
               <p className="text-lg font-bold">{fmt(totalRemaining)}</p>
             </div>
+            {isManager && (
+              <button type="button" onClick={openSummaryEdit} className="text-muted-foreground hover:text-foreground" aria-label="Edit remaining budget">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-yellow-400 transition-all" style={{ width: `${totalAllocated ? (totalRemaining / totalAllocated) * 100 : 0}%` }} />
@@ -339,6 +451,32 @@ const BudgetView = () => {
           ))}
         </div>
       )}
+
+      <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit budget totals</DialogTitle>
+            <DialogDescription>Change the headline numbers. Remaining follows total minus consumed.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Total Budget (PKR)</Label>
+              <Input type="number" min="0" value={summaryForm.total} onChange={(e) => setSummaryTotal(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Consumed (PKR)</Label>
+              <Input type="number" min="0" value={summaryForm.consumed} onChange={(e) => setSummaryConsumed(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Remaining (PKR)</Label>
+              <Input type="number" value={summaryForm.remaining} onChange={(e) => setSummaryRemaining(e.target.value)} />
+            </div>
+            <Button className="w-full" onClick={() => saveSummary.mutate()} disabled={saveSummary.isPending}>
+              Save totals
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BudgetDialog />
     </div>

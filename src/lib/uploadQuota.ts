@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import { QUOTA_MESSAGE, exceedsQuota } from "@/lib/uploadLimit";
+import { QUOTA_MESSAGE, exceedsQuota, quotaForEmail } from "@/lib/uploadLimit";
 
-export { QUOTA_MESSAGE, exceedsQuota };
+export { QUOTA_MESSAGE, exceedsQuota, quotaForEmail };
 
 const ledgerKey = (userId: string) => `swr-upload-used:${userId}`;
 
@@ -58,8 +58,10 @@ export async function getUsedBytes(userId: string) {
 }
 
 export async function assertUploadQuota(userId: string, incomingBytes: number, replaceBytes = 0) {
+  const { data } = await supabase.auth.getUser();
+  const quota = quotaForEmail(data.user?.email);
   const used = await getUsedBytes(userId);
-  if (exceedsQuota(used, incomingBytes, replaceBytes)) {
+  if (exceedsQuota(used, incomingBytes, replaceBytes, quota)) {
     throw new Error(QUOTA_MESSAGE);
   }
 }
