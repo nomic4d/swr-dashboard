@@ -4,18 +4,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Plus, Send, Clock, CheckCircle, XCircle, MessageCircle, Phone } from "lucide-react";
+import { Plus, Send, Clock, CheckCircle, XCircle, MessageCircle, Phone, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { restrictedKeywords } from "./CalendarView";
+import EmailPanel from "./EmailAllDialog";
 
 const statusIcons: Record<string, typeof Clock> = { pending: Clock, sent: CheckCircle, failed: XCircle };
 const statusColors: Record<string, string> = { pending: "text-warning", sent: "text-success", failed: "text-destructive" };
 
+const toWhatsAppNumber = (phone: string) => {
+  let digits = phone.replace(/[^\d]/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("920") && digits.length === 13) digits = `92${digits.slice(3)}`;
+  else if (digits.startsWith("0")) digits = `92${digits.slice(1)}`;
+  else if (digits.length === 10 && digits.startsWith("3")) digits = `92${digits}`;
+  if (digits.length < 11 || digits.length > 15) return "";
+  return digits;
+};
+
 const buildWaLink = (phone: string, message: string) => {
-  const clean = phone.replace(/[^\d]/g, "");
+  const clean = toWhatsAppNumber(phone);
+  if (!clean) return "";
   return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
 };
 
@@ -29,6 +40,7 @@ const MessagesView = () => {
   const [testPhone, setTestPhone] = useState("");
   const [testMessage, setTestMessage] = useState("");
   const [testEventId, setTestEventId] = useState("");
+  const [channel, setChannel] = useState<"whatsapp" | "email">("whatsapp");
 
   const { data: events = [] } = useQuery({
     queryKey: ["events"],
@@ -128,16 +140,61 @@ const MessagesView = () => {
   });
 
   const sendTest = (phone: string) => {
-    if (!phone || !testMessage) {
-      toast.error("Phone and message required");
+    const text = testMessage.trim() || "SWR reminder. Please confirm your attendance.";
+    const link = buildWaLink(phone, text);
+    if (!link) {
+      toast.error("Ye number WhatsApp pe nahi khulega. 03xx ya +92 likho.");
       return;
     }
-    window.open(buildWaLink(phone, testMessage), "_blank");
-    toast.success("WhatsApp opened — verify the message and tap Send");
+    const opened = window.open(link, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      window.location.href = link;
+      return;
+    }
+    toast.success("WhatsApp khul gaya — wahan Send dabao");
+  };
+
+  const sendToAll = () => {
+    const text = testMessage.trim() || "SWR reminder. Please confirm your attendance.";
+    const links = staff.map((s) => buildWaLink(s.phone_number || "", text)).filter(Boolean);
+    if (!links.length) {
+      toast.error("Kisi staff ka WhatsApp number nahi hai");
+      return;
+    }
+    let opened = 0;
+    links.forEach((link) => {
+      const tab = window.open(link, "_blank", "noopener,noreferrer");
+      if (tab) opened += 1;
+    });
+    if (!opened) {
+      toast.error("Browser ne chats block kar di. Is site ke popups allow karo, phir Send to all.");
+      return;
+    }
+    toast.success(opened === links.length
+      ? `${opened} staff ki chats khul gayi — har chat mein Send dabao`
+      : `${opened} of ${links.length} chats khuli. Popups allow karke dubara Send to all.`);
   };
 
   return (
     <div className="space-y-3 animate-fade-in">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setChannel("whatsapp")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${channel === "whatsapp" ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground"}`}
+        >
+          <MessageCircle className="h-4 w-4" /> WhatsApp
+        </button>
+        <button
+          type="button"
+          onClick={() => setChannel("email")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${channel === "email" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+        >
+          <Mail className="h-4 w-4" /> Email
+        </button>
+      </div>
+      {channel === "email" ? <EmailPanel recipients={staff} events={events} /> : (
+      <>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-foreground">WhatsApp Reminders</h2>
@@ -153,14 +210,16 @@ const MessagesView = () => {
             <DialogContent>
               <DialogHeader><DialogTitle>Send Test WhatsApp Reminder</DialogTitle></DialogHeader>
               <div className="space-y-3 pt-2">
-                <Select value={testEventId} onValueChange={handleTestEventSelect}>
-                  <SelectTrigger><SelectValue placeholder="Pick event for the reminder" /></SelectTrigger>
-                  <SelectContent>
-                    {events.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>#{e.event_number} · {e.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={testEventId}
+                  onChange={(e) => handleTestEventSelect(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Pick event for the reminder</option>
+                  {events.map((e) => (
+                    <option key={e.id} value={e.id}>#{e.event_number} · {e.title}</option>
+                  ))}
+                </select>
                 <Textarea placeholder="Message" rows={5} value={testMessage} onChange={(e) => setTestMessage(e.target.value)} />
                 <div className="space-y-2">
                   <label className="text-xs text-muted-foreground">Send to staff member:</label>
@@ -168,8 +227,9 @@ const MessagesView = () => {
                     {staff.map((s) => (
                       <button
                         key={s.id}
+                        type="button"
                         onClick={() => sendTest(s.phone_number)}
-                        disabled={!testMessage}
+                        disabled={!toWhatsAppNumber(s.phone_number || "")}
                         className="w-full flex items-center justify-between gap-2 p-2 rounded-md border border-border hover:bg-emerald-500/10 hover:border-emerald-500/50 transition disabled:opacity-50"
                       >
                         <span className="flex items-center gap-2 text-sm"><Phone className="h-3.5 w-3.5" />{s.name}</span>
@@ -178,12 +238,15 @@ const MessagesView = () => {
                     ))}
                     {staff.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">No active staff. Add one in the Staff tab.</p>}
                   </div>
+                  <Button type="button" onClick={sendToAll} className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700">
+                    <Send className="h-3.5 w-3.5" /> Send to all
+                  </Button>
                 </div>
                 <div className="space-y-2 pt-2 border-t border-border">
                   <label className="text-xs text-muted-foreground">Or send to a custom number:</label>
                   <div className="flex gap-2">
                     <Input placeholder="+92 300 1234567" value={testPhone} onChange={(e) => setTestPhone(e.target.value)} />
-                    <Button onClick={() => sendTest(testPhone)} disabled={!testPhone || !testMessage} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                    <Button type="button" onClick={() => sendTest(testPhone)} disabled={!testPhone.trim()} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
                       <Send className="h-3.5 w-3.5" /> Send
                     </Button>
                   </div>
@@ -199,16 +262,18 @@ const MessagesView = () => {
             <DialogContent>
               <DialogHeader><DialogTitle>Schedule Reminder by Event Date</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
-                <Select value={eventId} onValueChange={handleEventSelect}>
-                  <SelectTrigger><SelectValue placeholder="Select Event" /></SelectTrigger>
-                  <SelectContent>
-                    {events.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        #{event.event_number} · {event.title} {event.event_date && `— ${format(new Date(event.event_date), "MMM d")}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={eventId}
+                  onChange={(e) => handleEventSelect(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Select Event</option>
+                  {events.map((event) => (
+                    <option key={event.id} value={event.id}>
+                      #{event.event_number} · {event.title} {event.event_date ? `— ${format(new Date(event.event_date), "MMM d")}` : ""}
+                    </option>
+                  ))}
+                </select>
                 <Textarea placeholder="Reminder message" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
                 <div>
                   <label className="text-sm text-muted-foreground mb-1 block">Send date & time (auto-set 1 day before event)</label>
@@ -244,17 +309,21 @@ const MessagesView = () => {
                   <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">{reminder.message}</p>
                   <p className="text-xs text-muted-foreground mt-2">Scheduled: {format(new Date(reminder.reminder_date), "PPP 'at' p")}</p>
                   <div className="flex gap-2 mt-3">
-                    {staff.slice(0, 3).map((s) => (
+                    {staff.slice(0, 3).map((s) => {
+                      const href = buildWaLink(s.phone_number, reminder.message);
+                      if (!href) return null;
+                      return (
                       <a
                         key={s.id}
-                        href={buildWaLink(s.phone_number, reminder.message)}
+                        href={href}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition flex items-center gap-1"
                       >
                         <MessageCircle className="h-3 w-3" /> {s.name.split(" ")[0]}
                       </a>
-                    ))}
+                      );
+                    })}
                     {reminder.status !== "sent" && (
                       <button onClick={() => markSent.mutate(reminder.id)} className="text-xs px-2.5 py-1 rounded-full bg-success/10 text-success hover:bg-success/20 transition flex items-center gap-1">
                         <CheckCircle className="h-3 w-3" /> Mark sent
@@ -274,6 +343,8 @@ const MessagesView = () => {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 };
