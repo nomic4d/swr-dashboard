@@ -6,10 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Plus, Send, Clock, CheckCircle, XCircle, MessageCircle, Phone, Mail } from "lucide-react";
-import { format } from "date-fns";
+import { Plus, Send, Clock, CheckCircle, XCircle, MessageCircle, Phone, Mail, Bell } from "lucide-react";
+import { format, isPast, isSameDay } from "date-fns";
 import { restrictedKeywords } from "./CalendarView";
 import EmailPanel from "./EmailAllDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { canAccessManager, getPortalRole } from "@/pages/portalUtils";
 
 const statusIcons: Record<string, typeof Clock> = { pending: Clock, sent: CheckCircle, failed: XCircle };
 const statusColors: Record<string, string> = { pending: "text-warning", sent: "text-success", failed: "text-destructive" };
@@ -32,6 +34,9 @@ const buildWaLink = (phone: string, message: string) => {
 
 const MessagesView = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const role = getPortalRole(user?.email, user?.user_metadata?.role);
+  const canSend = canAccessManager(role);
   const [open, setOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
   const [eventId, setEventId] = useState("");
@@ -44,6 +49,7 @@ const MessagesView = () => {
 
   const { data: events = [] } = useQuery({
     queryKey: ["events"],
+    enabled: canSend,
     queryFn: async () => {
       const { data, error } = await supabase.from("events").select("*").order("event_number");
       if (error) throw error;
@@ -62,6 +68,7 @@ const MessagesView = () => {
 
   const { data: staffTable = [] } = useQuery({
     queryKey: ["staff"],
+    enabled: canSend,
     queryFn: async () => {
       const { data, error } = await supabase.from("staff").select("*").eq("is_active", true);
       if (error) throw error;
@@ -71,6 +78,7 @@ const MessagesView = () => {
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["messages-profiles"],
+    enabled: canSend,
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("id, full_name, phone_number, email, avatar_url").order("full_name");
       if (error) throw error;
@@ -174,6 +182,52 @@ const MessagesView = () => {
       ? `${opened} staff ki chats khul gayi — har chat mein Send dabao`
       : `${opened} of ${links.length} chats khuli. Popups allow karke dubara Send to all.`);
   };
+
+  if (!canSend) {
+    return (
+      <div className="space-y-3 animate-fade-in">
+        <div>
+          <h2 className="text-2xl font-light text-foreground/70">Messages</h2>
+          <p className="text-muted-foreground text-sm mt-1">Messages and notifications from your manager</p>
+        </div>
+        <div className="space-y-3">
+          {reminders.map((reminder, index) => {
+            const event = reminder.events as { title: string; month: string; event_date: string | null } | null;
+            const eventDate = event?.event_date ? String(event.event_date).slice(0, 10) : "";
+            const today = (eventDate && isSameDay(new Date(`${eventDate}T12:00:00`), new Date())) || isSameDay(new Date(reminder.reminder_date), new Date());
+            const due = isPast(new Date(reminder.reminder_date));
+            return (
+              <div key={reminder.id} className={`rounded-xl p-5 animate-slide-up ${today ? "bg-pink-400 text-white" : "glass-card"}`} style={{ animationDelay: `${index * 40}ms` }}>
+                <div className="flex items-start gap-4">
+                  <div className={`p-2 rounded-lg ${today ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}>
+                    <Bell className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className={`font-medium ${today ? "text-white" : "text-foreground"}`}>{event?.title || "Message"}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${today ? "bg-white/20 text-white" : due ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"}`}>
+                        {today ? "TODAY" : due ? "From manager" : "Upcoming"}
+                      </span>
+                    </div>
+                    <p className={`text-sm mt-1 whitespace-pre-line ${today ? "text-white/90" : "text-muted-foreground"}`}>{reminder.message}</p>
+                    <p className={`text-xs mt-2 ${today ? "text-white" : "text-muted-foreground"}`}>
+                      {format(new Date(reminder.reminder_date), "PPP 'at' p")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {reminders.length === 0 && (
+            <div className="text-center py-16 text-muted-foreground glass-card rounded-xl">
+              <Bell className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>No messages from your manager yet.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 animate-fade-in">

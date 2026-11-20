@@ -115,7 +115,7 @@ const DashboardView = () => {
   return (
     <div className="space-y-3 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">
+        <h2 className="text-2xl font-light text-foreground/70">
           Hello, {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 17 ? "Good Afternoon" : "Good Evening"}, {user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Member"}
         </h2>
         <p className="text-muted-foreground text-sm mt-1">SWR Yearly Calendar 2026 Overview</p>

@@ -76,6 +76,17 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
     staleTime: 300000,
   });
 
+  const { data: staffNames = [] } = useQuery({
+    queryKey: ["staff-names"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("staff").select("name, email");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 300000,
+    enabled: library !== "retreats",
+  });
+
   const scopedAlbums = albums.filter((album: any) => library === "retreats" ? isRetreatAlbum(album) : !isRetreatAlbum(album));
   const profileMap = Object.fromEntries(profiles.map((p: any) => [p.id, p]));
   const profileByEmail = Object.fromEntries(profiles.filter((p: any) => p.email).map((p: any) => [p.email, p]));
@@ -85,6 +96,19 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
   const filteredAlbums = library === "retreats"
     ? scopedAlbums.filter((album: any) => !categoryFilter || retreatAlbumCategory(album) === categoryFilter)
     : eventFilter ? scopedAlbums.filter((a: any) => a.event_id === eventFilter) : scopedAlbums;
+  const uploaderName = (uploaderId: string) => {
+    const profile = profileMap[uploaderId];
+    const staff = staffNames.find((row: any) => row.email && profile?.email && row.email.toLowerCase() === profile.email.toLowerCase());
+    const raw = `${staff?.name || profile?.full_name || ""}`.trim();
+    return raw.replace(/\b\w/g, (letter: string) => letter.toUpperCase()) || "Unknown";
+  };
+  const albumGroups = library === "retreats" ? [] : filteredAlbums.reduce((groups: { id: string; name: string; albums: any[] }[], album: any) => {
+    const id = album.uploader_id || "unknown";
+    const existing = groups.find((group) => group.id === id);
+    if (existing) existing.albums.push(album);
+    else groups.push({ id, name: uploaderName(id), albums: [album] });
+    return groups;
+  }, []);
   const albumMedia = activeAlbum ? media.filter((m: any) => m.album_id === activeAlbum.id) : [];
   const filteredMedia = albumMedia.filter((m: any) => mediaFilter === "all" || m.media_type === mediaFilter);
 
@@ -348,6 +372,53 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
             {canUpload && <p className="text-xs mt-2">Create an album to start uploading.</p>}
           </div>
           )
+        ) : library !== "retreats" ? (
+          <div className="space-y-4">
+            {albumGroups.map((group) => (
+              <div key={group.id} className="space-y-2">
+                <div className="rounded-md bg-sky-200 px-3 py-2">
+                  <p className="text-lg font-semibold text-sky-950">{group.name}'s Memories</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {group.albums.map((album: any) => {
+                    const albumShots = media.filter((m: any) => m.album_id === album.id);
+                    const cover = albumShots.find((m: any) => album.cover_url && (m.media_url === album.cover_url || m.thumbnail_url === album.cover_url)) || albumShots[0];
+                    const p = profileMap[album.uploader_id] || {};
+                    const count = media.filter((m: any) => m.album_id === album.id).length;
+                    return (
+                      <button key={album.id} onClick={() => setActiveAlbum(album)}
+                        className="group text-left rounded-xl border border-border/50 bg-card overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                          {cover ? (
+                            <img src={cover.media_type === "video" ? (cover.thumbnail_url || "/placeholder.svg") : cover.media_url} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground/40">
+                              {album.template === "scroll" ? <ScrollText className="h-10 w-10" /> : <LayoutGrid className="h-10 w-10" />}
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur flex items-center gap-1">
+                            {album.template === "scroll" ? <ScrollText className="h-3 w-3" /> : <LayoutGrid className="h-3 w-3" />}
+                            {count}
+                          </div>
+                        </div>
+                        <div className="p-3 flex items-center gap-3">
+                          <Avatar className="h-10 w-10 border shrink-0">
+                            <AvatarImage src={p.avatar_url} />
+                            <AvatarFallback className="text-sm">{(p.full_name || "U")[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">{displayAlbumTitle(album.title)}</p>
+                            <p className="text-xs text-muted-foreground truncate">{`Uploaded by ${p.full_name || "Unknown"}`}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {filteredAlbums.map((album: any) => {
