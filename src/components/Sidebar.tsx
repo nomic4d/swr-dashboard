@@ -47,10 +47,10 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all",
+              "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all",
               activeTab === item.id
                 ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                : "text-white hover:bg-white/10 hover:text-white"
             )}
           >
             <item.icon className="h-4 w-4" />
@@ -58,20 +58,20 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           </button>
         ))}
         {isManager && (
-          <Link to="/budgets" className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground">
+          <Link to="/budgets" className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-white hover:bg-white/10 hover:text-white">
             <BarChart3 className="h-4 w-4" />
             Budget Management
           </Link>
         )}
         {isAdmin && (
-          <Link to="/admin" className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground">
+          <Link to="/admin" className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-white hover:bg-white/10 hover:text-white">
             <Shield className="h-4 w-4" />
             Admin
           </Link>
         )}
       </nav>
       <div className="p-4 border-t border-white/10">
-        <p className="text-xs text-white/40 text-center">SWR Calendar 2026</p>
+        <p className="text-sm text-white text-center">SWR Calendar 2026</p>
       </div>
       </div>
     </aside>
