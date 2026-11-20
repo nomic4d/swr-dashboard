@@ -45,7 +45,7 @@ const MessagesView = () => {
   const [testPhone, setTestPhone] = useState("");
   const [testMessage, setTestMessage] = useState("");
   const [testEventId, setTestEventId] = useState("");
-  const [channel, setChannel] = useState<"whatsapp" | "email">("whatsapp");
+  const [channel, setChannel] = useState<"email" | "whatsapp">("email");
 
   const { data: events = [] } = useQuery({
     queryKey: ["events"],
@@ -234,17 +234,17 @@ const MessagesView = () => {
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => setChannel("whatsapp")}
-          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${channel === "whatsapp" ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground"}`}
-        >
-          <MessageCircle className="h-4 w-4" /> WhatsApp
-        </button>
-        <button
-          type="button"
           onClick={() => setChannel("email")}
           className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${channel === "email" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
         >
           <Mail className="h-4 w-4" /> Email
+        </button>
+        <button
+          type="button"
+          onClick={() => setChannel("whatsapp")}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${channel === "whatsapp" ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground"}`}
+        >
+          <MessageCircle className="h-4 w-4" /> WhatsApp
         </button>
       </div>
       {channel === "email" ? <EmailPanel recipients={staff} events={events} /> : (
