@@ -34,6 +34,7 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [stickerPreview, setStickerPreview] = useState<AnimatedEmoji | null>(null);
+  const [coverMenu, setCoverMenu] = useState<{ x: number; y: number; media: any } | null>(null);
 
   const { data: albums = [], error: albumsError } = useQuery({
     queryKey: ["albums"],
@@ -218,6 +219,39 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["comment_reactions"] }); },
   });
 
+  const openCoverMenu = (event: React.MouseEvent, media: any) => {
+    event.preventDefault();
+    setCoverMenu({ x: event.clientX, y: event.clientY, media });
+  };
+
+  const makeCoverPhoto = async () => {
+    if (!coverMenu || !activeAlbum) return;
+    const url = coverMenu.media.media_type === "video"
+      ? (coverMenu.media.thumbnail_url || coverMenu.media.media_url)
+      : coverMenu.media.media_url;
+    const { error } = await supabase.from("albums").update({ cover_url: url }).eq("id", activeAlbum.id);
+    if (error) {
+      const bumped = await supabase.from("event_media").update({ created_at: new Date().toISOString() }).eq("id", coverMenu.media.id);
+      if (bumped.error) {
+        toast.error(bumped.error.message || error.message);
+        setCoverMenu(null);
+        return;
+      }
+    }
+    setActiveAlbum({ ...activeAlbum, cover_url: url });
+    queryClient.invalidateQueries({ queryKey: ["albums"] });
+    queryClient.invalidateQueries({ queryKey: ["event_media"] });
+    toast.success("Cover photo updated");
+    setCoverMenu(null);
+  };
+
+  useEffect(() => {
+    if (!coverMenu) return;
+    const close = () => setCoverMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [coverMenu]);
+
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
   const next = useCallback(() => { setSlideDir("right"); setLightboxIndex((i) => (i === null ? null : (i + 1) % filteredMedia.length)); }, [filteredMedia.length]);
   const prev = useCallback(() => { setSlideDir("left"); setLightboxIndex((i) => (i === null ? null : (i - 1 + filteredMedia.length) % filteredMedia.length)); }, [filteredMedia.length]);
@@ -243,7 +277,7 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
     : [];
 
   return (
-    <div className="space-y-2 animate-fade-in">
+    <div className={library === "retreats" && !activeAlbum ? "flex h-full min-h-0 flex-1 flex-col gap-2 animate-fade-in" : "space-y-2 animate-fade-in"}>
       {!activeAlbum && (
         <div className="flex items-center justify-between">
           <div>
@@ -264,8 +298,8 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
         </div>
       )}
 
-      <div className="flex gap-3">
-        <div className="flex-1 min-w-0">
+      <div className={`flex gap-3 ${library === "retreats" && !activeAlbum ? "min-h-0 flex-1" : ""}`}>
+        <div className={`min-w-0 flex-1 ${library === "retreats" && !activeAlbum ? "flex min-h-0 flex-col" : ""}`}>
           {library !== "retreats" && (
           <button onClick={() => setShowFilterSidebar(true)}
             className="lg:hidden mb-2 flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
@@ -275,7 +309,7 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
           )}
 
           {library === "retreats" && !activeAlbum && (
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-3">
               {RETREAT_CATEGORIES.map((category) => {
                 const total = scopedAlbums.filter((album: any) => retreatAlbumCategory(album) === category.id).length;
                 const selected = categoryFilter === category.id;
@@ -291,11 +325,11 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
                     key={category.id}
                     type="button"
                     onClick={() => setCategoryFilter(selected ? null : category.id)}
-                    className={`relative overflow-hidden px-5 py-6 text-left shadow-md min-h-[280px] ${tone.text} ${selected ? "ring-2 ring-slate-900 ring-offset-2" : ""}`}
+                    className={`relative h-full min-h-[220px] overflow-hidden px-5 py-6 text-left shadow-md ${tone.text} ${selected ? "ring-2 ring-slate-900 ring-offset-2" : ""}`}
                   >
                     <img src={`/retreats/${category.id}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
                     <div className="absolute inset-0" style={{ backgroundColor: tone.color, opacity: 0.92 }} />
-                    <div className="relative flex h-full min-h-[232px] flex-col justify-between">
+                    <div className="relative flex h-full flex-col justify-between">
                       <p className="text-4xl font-bold leading-none">{total}</p>
                       <p className="text-base font-semibold leading-tight">{category.label}</p>
                     </div>
@@ -317,7 +351,8 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {filteredAlbums.map((album: any) => {
-              const cover = media.find((m: any) => m.album_id === album.id);
+              const albumShots = media.filter((m: any) => m.album_id === album.id);
+              const cover = albumShots.find((m: any) => album.cover_url && (m.media_url === album.cover_url || m.thumbnail_url === album.cover_url)) || albumShots[0];
               const p = profileMap[album.uploader_id] || {};
               const count = media.filter((m: any) => m.album_id === album.id).length;
               return (
@@ -401,7 +436,7 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
               {filteredMedia
                 .filter((m: any) => !search || (m.caption || "").toLowerCase().includes(search.toLowerCase()))
                 .map((m: any, idx: number) => (
-                  <div key={m.id} className="group relative shrink-0 w-48 aspect-square rounded-xl border bg-card overflow-hidden">
+                  <div key={m.id} onContextMenu={(event) => openCoverMenu(event, m)} className="group relative shrink-0 w-48 aspect-square rounded-xl border bg-card overflow-hidden">
                     <button onClick={() => setLightboxIndex(idx)} className="h-full w-full">
                       {m.media_type === "video" ? (
                         <div className="h-full w-full relative">
@@ -429,7 +464,7 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
               {filteredMedia
                 .filter((m: any) => !search || (m.caption || "").toLowerCase().includes(search.toLowerCase()))
                 .map((m: any, idx: number) => (
-                  <div key={m.id} className="group relative aspect-square rounded-xl border bg-card overflow-hidden">
+                  <div key={m.id} onContextMenu={(event) => openCoverMenu(event, m)} className="group relative aspect-square rounded-xl border bg-card overflow-hidden">
                     <button onClick={() => setLightboxIndex(idx)} className="h-full w-full">
                       {m.media_type === "video" ? (
                         <div className="h-full w-full relative">
@@ -545,6 +580,18 @@ const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?:
           albumId={activeAlbum.id}
           defaultEventId={activeAlbum.event_id}
         />
+      )}
+
+      {coverMenu && (
+        <div
+          className="fixed z-[80] min-w-44 rounded-md border bg-popover p-1 shadow-lg"
+          style={{ left: coverMenu.x, top: coverMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button type="button" onClick={makeCoverPhoto} className="w-full rounded px-3 py-2 text-left text-sm hover:bg-muted">
+            Make it cover photo
+          </button>
+        </div>
       )}
 
       {/* Instagram-style Lightbox */}

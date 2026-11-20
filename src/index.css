@@ -186,6 +186,17 @@
 .animate-zoomIn { animation: zoomIn 0.35s ease-out; }
 .animate-flipIn { animation: flipIn 0.35s ease-out; }
 
+@keyframes news-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.news-ticker-track {
+  animation: news-ticker 28s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .news-ticker-track { animation: none; }
+}
+
 /* Plyr inside dialogs: raise z-index so controls aren't behind overlay */
 .plyr__controls {
   z-index: 60 !important;

@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getPortalRole, canAccessManager } from "@/pages/portalUtils";
 import { displayAlbumTitle } from "@/components/galleryUtils";
+import NewsTicker from "@/components/NewsTicker";
 import { LogOut, User, UserCircle, ArrowLeft, Menu, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,7 +93,7 @@ const Index = () => {
           </div>
         </div>
       )}
-      <main className="flex-1 min-w-0 pl-6 pr-6 pt-2 p-1.5 lg:pl-8 lg:pr-8 lg:pt-2 lg:p-2 overflow-auto">
+      <main className="flex min-h-screen flex-1 flex-col min-w-0 pl-6 pr-6 pt-2 p-1.5 lg:pl-8 lg:pr-8 lg:pt-2 lg:p-2 pb-14 overflow-auto">
         <div className="flex items-center justify-between gap-1 min-h-[38px] rounded-lg bg-primary/10 px-2 mb-2">
           <div className="flex items-center gap-1.5 min-w-0 shrink-0">
             <button className="lg:hidden p-1 mr-1 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setMobileMenu(!mobileMenu)}>
@@ -154,6 +155,7 @@ const Index = () => {
             )}
           </div>
         </div>
+        <div className="flex min-h-0 flex-1 flex-col">
         {activeTab === "dashboard" && <DashboardView />}
         {activeTab === "calendar" && <CalendarView />}
         {activeTab === "staff" && canAccessManager(role) && <ErrorBoundary><StaffView /></ErrorBoundary>}
@@ -163,7 +165,9 @@ const Index = () => {
         {activeTab === "budget" && canAccessManager(role) && <BudgetView />}
         {activeTab === "profile" && <ProfileView />}
         {activeTab === "messages" && <MessagesView />}
+        </div>
       </main>
+      <NewsTicker />
       <Dialog open={showPasswordReminder} onOpenChange={(open) => { if (!open) dismissReminder(false); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

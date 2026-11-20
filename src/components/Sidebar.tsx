@@ -1,5 +1,7 @@
-import { Calendar, Users, MessageSquare, LayoutDashboard, Image, Heart, Wallet, Shield, BarChart3, User, Mountain } from "lucide-react";
+import { useState } from "react";
+import { Calendar, Users, MessageSquare, LayoutDashboard, Image, Heart, Wallet, Shield, BarChart3, User, Mountain, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
@@ -25,6 +27,7 @@ const allNavItems = [
 ];
 
 const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
+  const [rulesOpen, setRulesOpen] = useState(false);
   const { user } = useAuth();
   const isAdmin = isAdminUser(user?.email, user?.user_metadata?.role);
   const role = getPortalRole(user?.email, user?.user_metadata?.role);
@@ -70,10 +73,39 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           </Link>
         )}
       </nav>
-      <div className="p-4 border-t border-white/10">
-        <p className="text-sm text-white text-center">SWR Calendar 2026</p>
+      <div className="p-3 border-t border-white/10 space-y-1">
+        <button
+          type="button"
+          onClick={() => setRulesOpen(true)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-white/10 transition-all"
+        >
+          <ClipboardList className="h-4 w-4" />
+          Activity Rules
+        </button>
+        <p className="text-sm text-white text-center pt-1">SWR Calendar 2026</p>
       </div>
       </div>
+      <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Activity Rules</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-accent/10 p-4">
+              <p className="text-sm font-medium">Staff Eligibility</p>
+              <p className="mt-1 text-xs text-muted-foreground">Only staff is eligible for events</p>
+            </div>
+            <div className="rounded-lg bg-warning/10 p-4">
+              <p className="text-sm font-medium">Attendance Requirement</p>
+              <p className="mt-1 text-xs text-muted-foreground">Attending 70% is mandatory</p>
+            </div>
+            <div className="rounded-lg bg-success/10 p-4">
+              <p className="text-sm font-medium">Motto</p>
+              <p className="mt-1 text-xs text-muted-foreground">Cooperation makes life memorable</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 };

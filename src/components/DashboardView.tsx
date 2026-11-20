@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { createElement, useState, useEffect, useMemo } from "react";
 import { Calendar, Users, Heart, Clock, Wallet, Image, Play, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,52 +132,38 @@ const DashboardView = () => {
         {/* Gallery Spotlight — full-height with overlay */}
         <SlideShowWidget albums={galleryAlbums} media={galleryMedia} />
 
-        {/* Quick Stats */}
-        <div className="glass-card rounded-xl p-4 h-full">
-          <h3 className="font-semibold text-foreground mb-4">Activity Rules</h3>
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-accent/5">
-              <p className="text-sm font-medium text-foreground">📋 Staff Eligibility</p>
-              <p className="text-xs text-muted-foreground mt-1">Only staff is eligible for events</p>
-            </div>
-            <div className="p-4 rounded-lg bg-warning/5">
-              <p className="text-sm font-medium text-foreground">📊 Attendance Requirement</p>
-              <p className="text-xs text-muted-foreground mt-1">Attending 70% is mandatory</p>
-            </div>
-            <div className="p-4 rounded-lg bg-success/5">
-              <p className="text-sm font-medium text-foreground">🤝 Motto</p>
-              <p className="text-xs text-muted-foreground mt-1">Cooperation makes life memorable</p>
+        <div className="glass-card rounded-xl p-4 h-full flex flex-col">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600"><Wallet className="h-5 w-5" /></div>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-foreground">SWR Budget</h3>
+              <p className="text-xs text-muted-foreground">{budgetTotals.pct.toFixed(1)}% used</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="glass-card rounded-xl p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600"><Wallet className="h-5 w-5" /></div>
-              <div>
-                <h3 className="font-semibold text-foreground">SWR Budget 2026</h3>
-                <p className="text-xs text-muted-foreground">Allocated vs consumed</p>
-              </div>
-            </div>
-            <span className="text-xs text-muted-foreground">{budgetTotals.pct.toFixed(1)}% used</span>
-          </div>
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="p-3 rounded-lg bg-muted/40 text-center">
+          <div className="space-y-2">
+            <div className="p-3 rounded-lg bg-muted/40">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</p>
               <p className="text-lg font-bold text-foreground mt-1">PKR {budgetTotals.allocated.toLocaleString()}</p>
             </div>
-            <div className="p-3 rounded-lg bg-orange-500/10 text-center">
+            <div className="p-3 rounded-lg bg-orange-500/10">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Consumed</p>
               <p className="text-lg font-bold text-orange-600 mt-1">PKR {budgetTotals.consumed.toLocaleString()}</p>
             </div>
-            <div className="p-3 rounded-lg bg-emerald-500/10 text-center">
+            <div className="p-3 rounded-lg bg-emerald-500/10">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Remaining</p>
               <p className="text-lg font-bold text-emerald-600 mt-1">PKR {budgetTotals.remaining.toLocaleString()}</p>
             </div>
           </div>
+          <div className="flex flex-1 items-end justify-center overflow-hidden pointer-events-none min-h-[150px]">
+            {createElement("dotlottie-wc", {
+              src: "https://lottie.host/b94491ad-87ac-4b20-823b-cfbb9167354a/Q0SG8Yhfw0.lottie",
+              autoplay: true,
+              loop: true,
+              style: { width: 190, height: 190 },
+            })}
+          </div>
           <Progress value={budgetTotals.pct} className="h-2.5" />
+        </div>
       </div>
     </div>
   );

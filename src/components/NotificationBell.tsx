@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
-import { format, isPast } from "date-fns";
+import { format, isPast, isSameDay } from "date-fns";
 import {
   Popover,
   PopoverContent,
@@ -59,6 +59,13 @@ const NotificationBell = () => {
     setDismissed((prev) => new Set(prev).add(id));
   };
 
+  const isTodayReminder = (reminder: { reminder_date: string; events?: { event_date?: string | null } | null }) => {
+    const now = new Date();
+    const eventDate = reminder.events?.event_date;
+    if (eventDate && isSameDay(new Date(`${String(eventDate).slice(0, 10)}T12:00:00`), now)) return true;
+    return isSameDay(new Date(reminder.reminder_date), now);
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -89,19 +96,20 @@ const NotificationBell = () => {
               </p>
               {dueReminders.map((r) => {
                 const event = r.events as { title: string; month: string; event_date: string | null } | null;
+                const today = isTodayReminder(r);
                 return (
-                  <div key={r.id} className="px-3 py-2 hover:bg-muted/50 border-b border-border/50">
+                  <div key={r.id} className={cn("px-3 py-2 border-b border-border/50", today ? "bg-pink-400 text-white" : "hover:bg-muted/50")}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{event?.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.message}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          Was due {format(new Date(r.reminder_date), "MMM d, p")}
+                        <p className={cn("text-sm font-medium truncate", today ? "text-white" : "text-foreground")}>{event?.title}</p>
+                        <p className={cn("text-xs mt-0.5 line-clamp-2", today ? "text-white/90" : "text-muted-foreground")}>{r.message}</p>
+                        <p className={cn("text-[10px] mt-1 font-semibold", today ? "text-white" : "text-muted-foreground")}>
+                          {today ? "TODAY" : `Was due ${format(new Date(r.reminder_date), "MMM d, p")}`}
                         </p>
                       </div>
                       <button
                         onClick={() => handleDismiss(r.id)}
-                        className="text-[10px] text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
+                        className={cn("text-[10px] shrink-0 mt-0.5", today ? "text-white hover:text-white/80" : "text-muted-foreground hover:text-foreground")}
                       >
                         ✕
                       </button>
@@ -118,19 +126,20 @@ const NotificationBell = () => {
               </p>
               {upcomingReminders.map((r) => {
                 const event = r.events as { title: string; month: string; event_date: string | null } | null;
+                const today = isTodayReminder(r);
                 return (
-                  <div key={r.id} className="px-3 py-2 hover:bg-muted/50 border-b border-border/50">
+                  <div key={r.id} className={cn("px-3 py-2 border-b border-border/50", today ? "bg-pink-400 text-white" : "hover:bg-muted/50")}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{event?.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.message}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {format(new Date(r.reminder_date), "MMM d, p")}
+                        <p className={cn("text-sm font-medium truncate", today ? "text-white" : "text-foreground")}>{event?.title}</p>
+                        <p className={cn("text-xs mt-0.5 line-clamp-2", today ? "text-white/90" : "text-muted-foreground")}>{r.message}</p>
+                        <p className={cn("text-[10px] mt-1 font-semibold", today ? "text-white" : "text-muted-foreground")}>
+                          {today ? "TODAY" : format(new Date(r.reminder_date), "MMM d, p")}
                         </p>
                       </div>
                       <button
                         onClick={() => handleDismiss(r.id)}
-                        className="text-[10px] text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
+                        className={cn("text-[10px] shrink-0 mt-0.5", today ? "text-white hover:text-white/80" : "text-muted-foreground hover:text-foreground")}
                       >
                         ✕
                       </button>
