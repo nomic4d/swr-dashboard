@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { animatedEmojis, type AnimatedEmoji } from "@/data/animatedEmojis";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
-import { Image as ImageIcon, Video, Trash2, Folder, ChevronLeft, ChevronRight, X, Search, User, Camera, Loader2, LayoutGrid, ScrollText, Play, Heart, MessageCircle, Send, HeartOff, Settings, Minimize2, Move, ZoomIn, Repeat, Smile, ThumbsUp } from "lucide-react";
+import { Image as ImageIcon, Video, Trash2, Folder, ChevronLeft, ChevronRight, X, Search, User, Camera, Loader2, LayoutGrid, ScrollText, Play, Heart, MessageCircle, Send, HeartOff, Settings, Minimize2, Move, ZoomIn, Repeat, Smile, ThumbsUp, Users, Presentation, GraduationCap, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getPortalRole } from "@/pages/portalUtils";
@@ -16,8 +16,9 @@ import GalleryUploadDialog from "./GalleryUploadDialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PlyrVideo from "./PlyrVideo";
 import { eventTheme, restrictedKeywords } from "./CalendarView";
+import { displayAlbumTitle, isRetreatAlbum, RETREAT_CATEGORIES, retreatAlbumCategory, retreatCategoryLabel } from "./galleryUtils";
 
-const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) => {
+const GalleryView = ({ onHeaderChange, library = "gallery" }: { onHeaderChange?: (h: any) => void; library?: "gallery" | "retreats" }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [showAlbumCreate, setShowAlbumCreate] = useState(false);
@@ -29,6 +30,7 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
   const [slideDir, setSlideDir] = useState<"left" | "right">("left");
   const [mediaFilter, setMediaFilter] = useState<"all" | "image" | "video">("all");
   const [eventFilter, setEventFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [stickerPreview, setStickerPreview] = useState<AnimatedEmoji | null>(null);
@@ -73,12 +75,15 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
     staleTime: 300000,
   });
 
+  const scopedAlbums = albums.filter((album: any) => library === "retreats" ? isRetreatAlbum(album) : !isRetreatAlbum(album));
   const profileMap = Object.fromEntries(profiles.map((p: any) => [p.id, p]));
   const profileByEmail = Object.fromEntries(profiles.filter((p: any) => p.email).map((p: any) => [p.email, p]));
   const role = user ? getPortalRole(user.email, (user as any)?.user_metadata?.role) : "member";
   const canUpload = Boolean(user && (role === "manager" || role === "admin" || role === "staff"));
 
-  const filteredAlbums = eventFilter ? albums.filter((a: any) => a.event_id === eventFilter) : albums;
+  const filteredAlbums = library === "retreats"
+    ? scopedAlbums.filter((album: any) => !categoryFilter || retreatAlbumCategory(album) === categoryFilter)
+    : eventFilter ? scopedAlbums.filter((a: any) => a.event_id === eventFilter) : scopedAlbums;
   const albumMedia = activeAlbum ? media.filter((m: any) => m.album_id === activeAlbum.id) : [];
   const filteredMedia = albumMedia.filter((m: any) => mediaFilter === "all" || m.media_type === mediaFilter);
 
@@ -242,12 +247,12 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
       {!activeAlbum && (
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-foreground">Albums</h2>
-            <p className="text-[10px] text-muted-foreground">{filteredAlbums.length} albums</p>
+            <h2 className="text-base font-bold text-foreground">{library === "retreats" ? "Office Retreats" : "Albums"}</h2>
+            <p className="text-[10px] text-muted-foreground">{filteredAlbums.length} {library === "retreats" ? "workshops" : "albums"}</p>
           </div>
           {user && canUpload && (
             <Button size="sm" className="gap-1 h-7 text-xs" onClick={() => setShowAlbumCreate(true)}>
-              <Camera className="h-3 w-3" /> Create Album
+              <Camera className="h-3 w-3" /> {library === "retreats" ? "Add Event" : "Create Album"}
             </Button>
           )}
         </div>
@@ -261,19 +266,54 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
 
       <div className="flex gap-3">
         <div className="flex-1 min-w-0">
+          {library !== "retreats" && (
           <button onClick={() => setShowFilterSidebar(true)}
             className="lg:hidden mb-2 flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
           >
             <ImageIcon className="h-3.5 w-3.5" /> Filter by Event
           </button>
+          )}
+
+          {library === "retreats" && !activeAlbum && (
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {RETREAT_CATEGORIES.map((category) => {
+                const total = scopedAlbums.filter((album: any) => retreatAlbumCategory(album) === category.id).length;
+                const selected = categoryFilter === category.id;
+                const tone = category.id === "team-building"
+                  ? { color: "#9ac656", text: "text-slate-950" }
+                  : category.id === "workshops"
+                    ? { color: "#3e8bbd", text: "text-white" }
+                    : category.id === "training"
+                      ? { color: "#cbda52", text: "text-slate-950" }
+                      : { color: "#e6863f", text: "text-white" };
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setCategoryFilter(selected ? null : category.id)}
+                    className={`relative overflow-hidden px-5 py-6 text-left shadow-md min-h-[280px] ${tone.text} ${selected ? "ring-2 ring-slate-900 ring-offset-2" : ""}`}
+                  >
+                    <img src={`/retreats/${category.id}.jpg`} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    <div className="absolute inset-0" style={{ backgroundColor: tone.color, opacity: 0.92 }} />
+                    <div className="relative flex h-full min-h-[232px] flex-col justify-between">
+                      <p className="text-4xl font-bold leading-none">{total}</p>
+                      <p className="text-base font-semibold leading-tight">{category.label}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
       {!activeAlbum ? (
         filteredAlbums.length === 0 ? (
+          library === "retreats" ? null : (
           <div className="rounded-xl p-12 text-center text-muted-foreground border border-dashed">
             <Folder className="h-10 w-10 mx-auto mb-3 opacity-40" />
             <p className="font-medium">No albums yet</p>
             {canUpload && <p className="text-xs mt-2">Create an album to start uploading.</p>}
           </div>
+          )
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {filteredAlbums.map((album: any) => {
@@ -303,8 +343,8 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
                       <AvatarFallback className="text-sm">{(p.full_name || "U")[0]}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate">{album.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">Uploaded by {p.full_name || "Unknown"}</p>
+                      <p className="text-sm font-semibold truncate">{displayAlbumTitle(album.title)}</p>
+                      <p className="text-xs text-muted-foreground truncate">{library === "retreats" ? retreatCategoryLabel(album) : `Uploaded by ${p.full_name || "Unknown"}`}</p>
                     </div>
                   </div>
                 </button>
@@ -425,37 +465,65 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
       )}
         </div>
 
-        {/* Left sidebar filter */}
         <div className={`${showFilterSidebar ? "fixed inset-0 z-40 lg:relative lg:inset-auto" : "hidden lg:block"} lg:w-56 shrink-0`}>
           <div className={`${showFilterSidebar ? "absolute inset-0 bg-black/40 lg:hidden" : ""}`} onClick={() => setShowFilterSidebar(false)} />
           <div className={`${showFilterSidebar ? "absolute left-0 top-0 h-full w-56 bg-card border-r shadow-xl lg:relative lg:shadow-none" : ""} lg:block p-2 space-y-1 rounded-xl border bg-card/60 max-h-[calc(100vh-8rem)] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Events</span>
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{library === "retreats" ? "Type" : "Events"}</span>
               <button onClick={() => setShowFilterSidebar(false)} className="lg:hidden p-1 rounded text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
             </div>
-            <button onClick={() => { setEventFilter(null); setShowFilterSidebar(false); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${eventFilter === null ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-            >
-              <div className="w-7 h-7 rounded-lg bg-muted-foreground/20 flex items-center justify-center shrink-0">
-                <ImageIcon className="h-3.5 w-3.5" />
-              </div>
-              All Events
-            </button>
-            {events.map((e: any) => {
-              const theme = eventTheme[e.event_number as number];
-              const Icon = theme?.icon || ImageIcon;
-              const isActive = eventFilter === e.id;
-              return (
-                <button key={e.id} onClick={() => { setEventFilter(isActive ? null : e.id); setShowFilterSidebar(false); }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isActive ? "text-white shadow-sm bg-gradient-to-br " + theme?.gradient : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            {library === "retreats" ? (
+              <>
+                <button onClick={() => { setCategoryFilter(null); setShowFilterSidebar(false); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${categoryFilter === null ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isActive ? "bg-white/20" : "bg-gradient-to-br " + (theme?.gradient || "from-gray-400 to-gray-600")}`}>
-                    <Icon className="h-3.5 w-3.5 text-white" />
+                  <div className="w-7 h-7 rounded-lg bg-muted-foreground/20 flex items-center justify-center shrink-0">
+                    <ImageIcon className="h-3.5 w-3.5" />
                   </div>
-                  <span className="truncate">{e.title}</span>
+                  All
                 </button>
-              );
-            })}
+                {RETREAT_CATEGORIES.map((category) => {
+                  const Icon = category.id === "team-building" ? Users : category.id === "workshops" ? Presentation : category.id === "capacity-building" ? GraduationCap : BookOpen;
+                  const isActive = categoryFilter === category.id;
+                  return (
+                    <button key={category.id} onClick={() => { setCategoryFilter(isActive ? null : category.id); setShowFilterSidebar(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                    >
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isActive ? "bg-white/20" : "bg-primary/10 text-primary"}`}>
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="truncate">{category.label}</span>
+                    </button>
+                  );
+                })}
+              </>
+            ) : (
+              <>
+                <button onClick={() => { setEventFilter(null); setShowFilterSidebar(false); }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${eventFilter === null ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-muted-foreground/20 flex items-center justify-center shrink-0">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  </div>
+                  All Events
+                </button>
+                {events.map((e: any) => {
+                  const theme = eventTheme[e.event_number as number];
+                  const Icon = theme?.icon || ImageIcon;
+                  const isActive = eventFilter === e.id;
+                  return (
+                    <button key={e.id} onClick={() => { setEventFilter(isActive ? null : e.id); setShowFilterSidebar(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isActive ? "text-white shadow-sm bg-gradient-to-br " + theme?.gradient : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                    >
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isActive ? "bg-white/20" : "bg-gradient-to-br " + (theme?.gradient || "from-gray-400 to-gray-600")}`}>
+                        <Icon className="h-3.5 w-3.5 text-white" />
+                      </div>
+                      <span className="truncate">{e.title}</span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -464,6 +532,8 @@ const GalleryView = ({ onHeaderChange }: { onHeaderChange?: (h: any) => void }) 
         open={showAlbumCreate}
         onOpenChange={setShowAlbumCreate}
         events={events}
+        library={library}
+        defaultCategory={(categoryFilter as "team-building" | "workshops" | "training" | "capacity-building") || "workshops"}
         onAlbumCreated={(album) => { setShowAlbumCreate(false); setActiveAlbum(album); setShowUpload(true); }}
       />
 

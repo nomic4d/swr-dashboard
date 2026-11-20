@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { assertUploadQuota, matchingBytes, QUOTA_MESSAGE, rememberUpload } from "@/lib/uploadQuota";
-import { Camera, Lock, Pencil, Image as ImageIcon, Folder, Loader2, ArrowLeft, ChevronLeft, ChevronRight, X, Trash2, Play } from "lucide-react";
+import { Camera, Lock, Pencil, Image as ImageIcon, Folder, Loader2, ArrowLeft, ChevronLeft, ChevronRight, X, Trash2, Play, Mountain } from "lucide-react";
+import { albumTitleForLibrary, displayAlbumTitle, isRetreatAlbum, retreatAlbumCategory, retreatCategoryLabel } from "./galleryUtils";
 import { format } from "date-fns";
 import PlyrVideo from "./PlyrVideo";
 
@@ -288,7 +289,7 @@ const ProfileView = () => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold flex items-center gap-2">
-                <Folder className="h-4 w-4" /> {selectedAlbum.title}
+                <Folder className="h-4 w-4" /> {displayAlbumTitle(selectedAlbum.title)}
               </h3>
               <p className="text-[11px] text-muted-foreground">
                 Event #{selectedAlbum.event?.event_number} · {selectedAlbum.template} layout · {albumMedia.length} media
@@ -333,31 +334,41 @@ const ProfileView = () => {
         </div>
       ) : (
         <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
-            <h3 className="text-sm font-bold flex items-center gap-2"><Folder className="h-4 w-4" /> My Albums</h3>
-            {albums.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No albums created yet.</p>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {albums.map((a: any) => (
-                  <div key={a.id} className="flex items-center gap-2 rounded-lg border p-2.5">
-                    <button onClick={() => setSelectedAlbum(a)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                      <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
-                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold truncate">{a.title}</p>
-                        <p className="text-[10px] text-muted-foreground">Event #{a.event?.event_number} · {a.template}</p>
-                      </div>
-                    </button>
-                    <button onClick={() => { setEditAlbum(a); setEditAlbumTitle(a.title); setEditAlbumTemplate(a.template); }}
-                      className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => { if (confirm("Delete album?")) deleteAlbum.mutate(a.id); }}
-                      className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="space-y-3">
+            {[
+              { key: "mine", label: "My Albums", icon: Folder, empty: "No albums created yet.", rows: albums.filter((a: any) => !isRetreatAlbum(a)) },
+              { key: "retreats", label: "Office Retreats", icon: Mountain, empty: "No office retreat albums yet.", rows: albums.filter((a: any) => isRetreatAlbum(a)) },
+            ].map((section) => {
+              const SectionIcon = section.icon;
+              return (
+                <div key={section.key} className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+                  <h3 className="text-sm font-bold flex items-center gap-2"><SectionIcon className="h-4 w-4" /> {section.label}</h3>
+                  {section.rows.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">{section.empty}</p>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {section.rows.map((a: any) => (
+                        <div key={a.id} className="flex items-center gap-2 rounded-lg border p-2.5">
+                          <button onClick={() => setSelectedAlbum(a)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
+                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold truncate">{displayAlbumTitle(a.title)}</p>
+                              <p className="text-[10px] text-muted-foreground">{isRetreatAlbum(a) ? retreatCategoryLabel(a) : `Event #${a.event?.event_number}`} · {a.template}</p>
+                            </div>
+                          </button>
+                          <button onClick={() => { setEditAlbum(a); setEditAlbumTitle(displayAlbumTitle(a.title)); setEditAlbumTemplate(a.template); }}
+                            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"><Pencil className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => { if (confirm("Delete album?")) deleteAlbum.mutate(a.id); }}
+                            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
@@ -426,7 +437,7 @@ const ProfileView = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button size="sm" className="w-full" onClick={() => updateAlbum.mutate({ id: editAlbum.id, updates: { title: editAlbumTitle, template: editAlbumTemplate } })}>Save</Button>
+            <Button size="sm" className="w-full" onClick={() => updateAlbum.mutate({ id: editAlbum.id, updates: { title: albumTitleForLibrary(editAlbumTitle, isRetreatAlbum(editAlbum) ? "retreats" : "gallery", retreatAlbumCategory(editAlbum)), template: editAlbumTemplate } })}>Save</Button>
           </div>
         </DialogContent>
       </Dialog>

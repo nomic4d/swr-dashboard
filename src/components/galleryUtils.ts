@@ -23,6 +23,32 @@ export interface GalleryFilterOptions {
   sortBy?: "latest" | "oldest" | "popular" | "featured";
 }
 
+export const OFFICE_RETREAT_MARK = "[[office-retreat]] ";
+
+export const RETREAT_CATEGORIES = [
+  { id: "team-building", label: "Team Building" },
+  { id: "workshops", label: "Workshops" },
+  { id: "training", label: "Training" },
+  { id: "capacity-building", label: "Capacity Building" },
+] as const;
+
+export const isRetreatAlbum = (album: { title?: string | null }) => (album.title || "").startsWith(OFFICE_RETREAT_MARK);
+
+export const displayAlbumTitle = (title?: string | null) => (title || "").replace(/^(?:\[\[[^\]]+\]\]\s*)+/, "");
+
+export const retreatAlbumCategory = (album: { title?: string | null }) => {
+  const match = (album.title || "").match(/\[\[office-retreat\]\]\s*\[\[([a-z-]+)\]\]/i);
+  return RETREAT_CATEGORIES.some((item) => item.id === match?.[1]) ? match![1] : "workshops";
+};
+
+export const retreatCategoryLabel = (album: { title?: string | null }) =>
+  RETREAT_CATEGORIES.find((item) => item.id === retreatAlbumCategory(album))?.label || "Workshops";
+
+export const albumTitleForLibrary = (title: string, library: "gallery" | "retreats", category = "workshops") => {
+  const clean = displayAlbumTitle(title).trim();
+  return library === "retreats" ? `${OFFICE_RETREAT_MARK}[[${category}]] ${clean}` : clean;
+};
+
 const normalize = (value: string | null | undefined) => String(value ?? "").toLowerCase();
 
 export const getVisibleGalleryMedia = (

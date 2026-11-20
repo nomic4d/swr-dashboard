@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getPortalRole, canAccessManager } from "@/pages/portalUtils";
+import { displayAlbumTitle } from "@/components/galleryUtils";
 import { LogOut, User, UserCircle, ArrowLeft, Menu, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,13 +37,15 @@ import {
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [galleryHeader, setGalleryHeader] = useState<any>(null);
+  const [retreatHeader, setRetreatHeader] = useState<any>(null);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [showPasswordReminder, setShowPasswordReminder] = useState(false);
   const navigate = useNavigate();
   const { user, signOut, loading } = useAuth();
   const role = getPortalRole(user?.email, (user as any)?.user_metadata?.role);
   const initials = (user?.email || "U").split("@")[0].slice(0, 2).toUpperCase();
-  const pageTitles: Record<string, string> = { dashboard: "Dashboard", calendar: "Calendar", staff: "Staff", gallery: "Gallery", contributors: "Contributors", budget: "Budget", profile: "Profile", messages: "Messages" };
+  const pageTitles: Record<string, string> = { dashboard: "Dashboard", calendar: "Calendar", staff: "Staff", gallery: "Gallery", retreats: "Office Retreats", contributors: "Contributors", budget: "Budget", profile: "Profile", messages: "Messages" };
+  const sectionHeader = activeTab === "gallery" ? galleryHeader : activeTab === "retreats" ? retreatHeader : null;
 
   useEffect(() => {
     if (user && !localStorage.getItem("pw-reminder-dismissed")) {
@@ -95,15 +98,15 @@ const Index = () => {
             <button className="lg:hidden p-1 mr-1 -ml-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setMobileMenu(!mobileMenu)}>
               {mobileMenu ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
-            {activeTab === "gallery" && galleryHeader && galleryHeader.activeAlbum ? (
+            {(activeTab === "gallery" || activeTab === "retreats") && sectionHeader && sectionHeader.activeAlbum ? (
               <>
-                <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 shrink-0 text-xs" onClick={() => { galleryHeader.onBack(); }}>
+                <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 shrink-0 text-xs" onClick={() => { sectionHeader.onBack(); }}>
                   <ArrowLeft className="h-3.5 w-3.5" /> Back
                 </Button>
                 <span className="w-4 shrink-0" />
-                <span className="text-base font-bold text-primary truncate">{galleryHeader.activeAlbum.title}</span>
+                <span className="text-base font-bold text-primary truncate">{displayAlbumTitle(sectionHeader.activeAlbum.title)}</span>
                 <span className="w-4 shrink-0" />
-                <span className="text-xs text-muted-foreground whitespace-nowrap">{galleryHeader.albumMediaCount} media</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{sectionHeader.albumMediaCount} media</span>
               </>
             ) : (
               <span className="text-base font-bold text-primary">{pageTitles[activeTab] || activeTab}</span>
@@ -155,6 +158,7 @@ const Index = () => {
         {activeTab === "calendar" && <CalendarView />}
         {activeTab === "staff" && canAccessManager(role) && <ErrorBoundary><StaffView /></ErrorBoundary>}
         {activeTab === "gallery" && <GalleryView onHeaderChange={setGalleryHeader} />}
+        {activeTab === "retreats" && <GalleryView library="retreats" onHeaderChange={setRetreatHeader} />}
         {activeTab === "contributors" && <ContributorsView />}
         {activeTab === "budget" && canAccessManager(role) && <BudgetView />}
         {activeTab === "profile" && <ProfileView />}

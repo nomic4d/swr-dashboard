@@ -1,4 +1,4 @@
-import { Calendar, Users, MessageSquare, LayoutDashboard, Image, Heart, Wallet, Shield, BarChart3, User } from "lucide-react";
+import { Calendar, Users, MessageSquare, LayoutDashboard, Image, Heart, Wallet, Shield, BarChart3, User, Mountain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,7 @@ const allNavItems = [
   { id: "calendar", label: "Calendar", icon: Calendar },
   { id: "staff", label: "Staff", icon: Users },
   { id: "gallery", label: "Gallery", icon: Image },
+  { id: "retreats", label: "Office Retreats", icon: Mountain },
   { id: "contributors", label: "Contributors", icon: Heart },
   { id: "budget", label: "Budget", icon: Wallet },
   { id: "messages", label: "Messages", icon: MessageSquare },
