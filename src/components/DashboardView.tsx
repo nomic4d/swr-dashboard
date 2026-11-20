@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { restrictedKeywords, themeForEvent, eventPhoto, eventPhotoPosition } from "./CalendarView";
+import CalendarEventModal from "./CalendarEventModal";
 import { applyEventSchedule } from "./calendarUtils";
 import { DUMMY_DONORS } from "@/data/dummyDonors";
 
@@ -302,6 +303,7 @@ const eventsInMonth = (events: any[], month: string) =>
   });
 
 const YearlyCalendar = ({ events }: { events: any[] }) => {
+  const [selected, setSelected] = useState<any>(null);
   const filled = months
     .map((month) => ({ month, events: eventsInMonth(events, month) }))
     .filter((entry) => entry.events.length > 0);
@@ -316,9 +318,11 @@ const YearlyCalendar = ({ events }: { events: any[] }) => {
               const theme = themeForEvent(event);
               const Icon = theme.icon;
               return (
-                <div
+                <button
+                  type="button"
                   key={event.id}
-                  className={`relative flex-1 min-h-[76px] bg-gradient-to-br ${theme.gradient} px-3 flex items-center gap-2.5`}
+                  onClick={() => setSelected(event)}
+                  className={`relative flex-1 min-h-[76px] bg-gradient-to-br ${theme.gradient} px-3 flex items-center gap-2.5 text-left cursor-pointer transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white`}
                 >
                   {index === 0 && (
                     <span className="absolute top-2 right-2 text-[10px] font-bold uppercase tracking-wider text-white bg-black/15 px-2 py-0.5 rounded-full">
@@ -329,12 +333,24 @@ const YearlyCalendar = ({ events }: { events: any[] }) => {
                     <Icon className="h-4 w-4 text-white" strokeWidth={2.2} />
                   </div>
                   <span className="text-sm font-bold text-white leading-tight pr-8">{event.title}</span>
-                </div>
+                </button>
               );
             })}
           </div>
         ))}
       </div>
+      <CalendarEventModal
+        event={selected}
+        open={Boolean(selected)}
+        onOpenChange={(open) => { if (!open) setSelected(null); }}
+        canManage={false}
+        isEditing={false}
+        form={{}}
+        onFormChange={() => {}}
+        onSave={() => {}}
+        onStartEdit={() => {}}
+        onCancelEdit={() => {}}
+      />
     </div>
   );
 };

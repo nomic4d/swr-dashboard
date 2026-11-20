@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { CalendarDays, MapPin, PencilLine, Phone, UserRound, Clock3, BedDouble, Navigation } from "lucide-react";
 import { restrictedKeywords, themeForEvent } from "./CalendarView";
+import FizzySparks from "./FizzySparks";
 
 const DETAIL_LABELS = ["Organizer Phone", "Location Link", "Departure Time", "Arrival Time", "Night Stay", "Category", "Timings", "Organizer"];
 
@@ -54,14 +55,26 @@ const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, f
   const details = readEventCopy(event);
   const theme = themeForEvent(event);
   const Icon = theme.icon;
-  const when = event.event_date ? format(new Date(`${String(event.event_date).slice(0, 10)}T12:00:00`), "MMMM d, yyyy") : "Date to be announced";
+  const dateStr = String(event.event_date || "").slice(0, 10);
+  const today = format(new Date(), "yyyy-MM-dd");
+  const when = dateStr ? format(new Date(`${dateStr}T12:00:00`), "MMMM d, yyyy") : "Date to be announced";
+  const status = !dateStr
+    ? "Date not set"
+    : dateStr < today
+      ? "Already happened"
+      : dateStr === today
+        ? "Happening today"
+        : "Upcoming";
+  const title = `${event.title || ""}`.toLowerCase();
+  const showSparks = title.includes("fusion") || title.includes("cuisine") || title.includes("cultural");
   const mapHref = details.locationLink
     ? (/^https?:\/\//i.test(details.locationLink) ? details.locationLink : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(details.locationLink)}`)
     : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl overflow-hidden p-0">
+      <DialogContent className="max-w-3xl overflow-hidden p-0 [&>button]:z-30">
+        {showSparks && <FizzySparks />}
         <div className={`relative bg-gradient-to-br ${theme.gradient} px-6 py-5 text-white`}>
           <div className="absolute -right-6 -top-8 opacity-20">
             <Icon className="h-32 w-32" strokeWidth={1.2} />
@@ -69,6 +82,9 @@ const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, f
           <DialogHeader className="relative space-y-2 text-left">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">{isEditing ? "Edit event" : (event.month || "Event")}</p>
             <DialogTitle className="text-2xl text-white">{isEditing ? (form.title || event.title) : event.title}</DialogTitle>
+            {!isEditing && (
+              <p className="text-sm font-medium text-white/90">{status}{dateStr ? ` · ${when}` : ""}</p>
+            )}
           </DialogHeader>
         </div>
         <div className="space-y-4 p-6">
@@ -136,6 +152,7 @@ const CalendarEventModal = ({ event, open, onOpenChange, canManage, isEditing, f
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{status}</Badge>
               <Badge variant="secondary">{details.category}</Badge>
               {details.nightStayKnown && <Badge variant="outline">{details.nightStay ? "Night stay" : "No night stay"}</Badge>}
             </div>
